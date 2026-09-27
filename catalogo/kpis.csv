@@ -1,0 +1,84 @@
+id;area;kpi;formula;unidade;polaridade;tipo;frequencia;fonte_tipica;contrapeso
+SC-001;supply-chain;Pedido perfeito;Pedidos sem falha (prazo, completo, sem avaria, documentação) / pedidos totais;%;maior;lagging;semanal;ERP+TMS+SAC;
+SC-002;supply-chain;Acurácia de forecast;1 - soma(|real - previsto|) / soma(real) (WMAPE);%;maior;leading;mensal;APS/ERP;SC-003
+SC-003;supply-chain;Bias de forecast;soma(previsto - real) / soma(real);%;faixa;leading;mensal;APS/ERP;SC-002
+SC-004;supply-chain;Fill rate por linha;Linhas atendidas completas / linhas pedidas;%;maior;lagging;diário;ERP/WMS;
+SC-005;supply-chain;Acurácia de inventário;Posições sem divergência / posições contadas;%;maior;lagging;mensal;WMS;
+SC-006;supply-chain;Dock-to-stock P90;Percentil 90 do tempo doca -> disponível para venda;h;menor;lagging;diário;WMS;
+SC-007;supply-chain;Acurácia de picking;Linhas corretas / linhas separadas;%;maior;lagging;diário;WMS/auditoria;
+SC-008;supply-chain;Produtividade de picking;Linhas separadas / horas-homem diretas;linhas/HH;maior;lagging;diário;WMS+ponto;SC-007
+SC-009;supply-chain;Expedição no cut-off;Pedidos expedidos até o cut-off / pedidos elegíveis;%;maior;leading;diário;WMS;
+SC-010;supply-chain;Custo logístico sobre receita;Custo total de logística / receita líquida;%;menor;lagging;mensal;ERP/controladoria;SC-001
+SC-011;supply-chain;Cash-to-cash;DSI + DSO - DPO;dias;menor;lagging;mensal;ERP;SC-004
+MM-001;middle-mile;On-time departure;Partidas até horário planejado + tolerância / partidas;%;maior;leading;diário;TMS;
+MM-002;middle-mile;On-time arrival;Chegadas dentro da janela / chegadas;%;maior;lagging;diário;TMS/telemetria;
+MM-003;middle-mile;Ocupação de veículo;Carga embarcada / capacidade na restrição ativa (peso ou cubagem);%;maior;lagging;diário;TMS;MM-002
+MM-004;middle-mile;Custo por kg transferido;Custo de frete de transferência / kg transferido;R$/kg;menor;lagging;mensal;TMS/ERP;MM-002
+MM-005;middle-mile;Dwell time P90;Percentil 90 do tempo entrada -> saída do volume no hub;h;menor;lagging;diário;Sorter/WMS;
+MM-006;middle-mile;Missort;Volumes triados para destino errado / volumes triados;PPM;menor;lagging;diário;Sorter;MM-007
+MM-007;middle-mile;Backlog na onda;Volumes não triados ao fechar a onda;un;menor;leading;por onda;Sorter/WMS;
+MM-008;middle-mile;Avaria e extravio;Ocorrências / 10.000 volumes;por 10k;menor;lagging;semanal;TMS/SAC;
+MM-009;middle-mile;Km vazio;Km sem carga / km total;%;menor;lagging;mensal;TMS/telemetria;
+LM-001;last-mile;OTD vs. promessa;Pedidos entregues até a data prometida / pedidos com promessa vencida no período;%;maior;lagging;diário;TMS/app de entrega;LM-008
+LM-002;last-mile;First attempt delivery rate;Entregas com sucesso na 1a tentativa / pacotes em rota;%;maior;lagging;diário;App de entrega;LM-008
+LM-003;last-mile;Custo por entrega bem-sucedida;Custo total da operação LM / entregas concluídas;R$;menor;lagging;mensal;ERP/TMS;LM-001
+LM-004;last-mile;Paradas por hora;Paradas realizadas / horas em rota;paradas/h;maior;lagging;diário;App de entrega/telemetria;LM-002
+LM-005;last-mile;Saída de rotas no horário;Rotas despachadas até H / rotas planejadas;%;maior;leading;diário;TMS;
+LM-006;last-mile;Ocorrências de entrega;(Avarias + extravios) / 10.000 pacotes;por 10k;menor;lagging;semanal;SAC/TMS;
+LM-007;last-mile;Contatos SAC por pedido;Contatos ligados a entrega / 100 pedidos;por 100;menor;lagging;semanal;CRM/SAC;
+LM-008;last-mile;Tentativa falsa;Tentativas sem evidência válida / tentativas malsucedidas;%;menor;lagging;semanal;App (geo+foto);
+LM-009;last-mile;Retenção de entregadores D+90;Ativos no D+90 / iniciados no período;%;maior;leading;mensal;Cadastro de parceiros;
+LM-010;last-mile;Entregas via PUDO/locker;Entregas em pontos de retirada / total de entregas;%;maior;lagging;mensal;TMS;LM-007
+PE-001;pessoas;Absenteísmo;Horas ausentes não programadas / horas programadas;%;menor;leading;diário;Ponto eletrônico;
+PE-002;pessoas;Turnover;Desligamentos no mês / headcount médio;%;menor;lagging;mensal;HRIS;
+PE-003;pessoas;Turnover precoce;Desligados com menos de 90 dias / admitidos na coorte;%;menor;lagging;mensal;HRIS;
+PE-004;pessoas;Time-to-fill;Dias entre abertura e aceite da vaga;dias;menor;lagging;mensal;ATS;PE-003
+PE-005;pessoas;Tempo até proficiência;Dias até 100% do padrão de produtividade;dias;menor;leading;mensal;WMS+HRIS;
+PE-006;pessoas;Índice de polivalência;Pessoas habilitadas em 2+ funções / headcount;%;maior;leading;mensal;Matriz de habilidades;
+PE-007;pessoas;eNPS;% promotores (9-10) - % detratores (0-6);pontos;maior;lagging;trimestral;Pesquisa;
+PE-008;pessoas;Taxa de frequência de acidentes;Acidentes x 1.000.000 / horas-homem trabalhadas (NBR 14280);taxa;menor;lagging;mensal;SESMT;
+PE-009;pessoas;Taxa de gravidade;Dias perdidos e debitados x 1.000.000 / horas-homem trabalhadas (NBR 14280);taxa;menor;lagging;mensal;SESMT;
+PE-010;pessoas;Cobertura de sucessão;Posições-chave com sucessor pronto / posições-chave;%;maior;leading;semestral;HRIS/Talent review;
+MK-001;marketing;ROAS;Receita atribuída / investimento em mídia;x;maior;lagging;diário;Plataformas de mídia;MK-003
+MK-002;marketing;POAS;Lucro bruto atribuído / investimento em mídia;x;maior;lagging;semanal;Plataformas+ERP;
+MK-003;marketing;MER;Receita total / investimento total em mídia;x;maior;lagging;semanal;ERP+financeiro;
+MK-004;marketing;CAC;Investimento em aquisição / novos clientes;R$;menor;lagging;mensal;CRM+financeiro;MK-005
+MK-005;marketing;LTV:CAC;LTV (margem) / CAC;x;maior;lagging;trimestral;CRM+ERP;
+MK-006;marketing;Payback de CAC;CAC / margem mensal por cliente;meses;menor;lagging;trimestral;CRM+ERP;
+MK-007;marketing;CTR;Cliques / impressões;%;maior;leading;diário;Plataformas de mídia;MK-008
+MK-008;marketing;Taxa de conversão;Pedidos / sessões;%;maior;lagging;diário;Web analytics;
+MK-009;marketing;Lift incremental;(Conversões expostos - controle) / controle;%;maior;lagging;por teste;Testes geo/holdout;
+MK-010;marketing;Divergência de dados;|Receita plataforma - receita ERP| / receita ERP;%;menor;lagging;mensal;Plataformas+ERP;
+PJ-001;projetos;SPI;EV / PV;índice;maior;leading;mensal;Ferramenta de projetos;PJ-002
+PJ-002;projetos;CPI;EV / AC;índice;maior;leading;mensal;Ferramenta de projetos+ERP;PJ-001
+PJ-003;projetos;EAC;BAC / CPI;R$;menor;leading;mensal;Ferramenta de projetos;
+PJ-004;projetos;TCPI;(BAC - EV) / (BAC - AC);índice;menor;leading;mensal;Ferramenta de projetos;
+PJ-005;projetos;Benefício realizado;Benefício medido / benefício do business case;%;maior;lagging;semestral;Controladoria;
+PJ-006;projetos;Marcos no prazo;Marcos concluídos na data de baseline / marcos previstos;%;maior;lagging;mensal;Ferramenta de projetos;
+PJ-007;projetos;Riscos altos sem resposta;Riscos de alto P x I sem plano e dono;un;menor;leading;quinzenal;Registro de riscos;
+PJ-008;projetos;Alinhamento estratégico do portfólio;Investimento em projetos vinculados à X-Matrix / investimento total;%;maior;leading;trimestral;PMO;
+AG-001;agil;Sprint Goal atingido;Sprints com goal atingido / sprints;%;maior;lagging;por sprint;Jira/Azure DevOps;
+AG-002;agil;Cycle time P85;Percentil 85 do tempo início -> done;dias;menor;lagging;semanal;Jira/Azure DevOps;
+AG-003;agil;Throughput;Itens concluídos / semana;itens;faixa;lagging;semanal;Jira/Azure DevOps;AG-007
+AG-004;agil;WIP;Itens em andamento;itens;menor;leading;diário;Quadro Kanban;
+AG-005;agil;Frequência de deploy;Deploys em produção / período;deploys;maior;lagging;semanal;CI/CD;AG-007
+AG-006;agil;Lead time para mudanças;Tempo commit -> produção;h;menor;lagging;semanal;CI/CD;
+AG-007;agil;Taxa de falha de mudança;Deploys que causam incidente / deploys;%;menor;lagging;mensal;CI/CD+incidentes;
+AG-008;agil;Tempo de recuperação de deploy com falha;Tempo para restaurar serviço;h;menor;lagging;mensal;Gestão de incidentes;
+AG-009;agil;Trabalho não planejado;Horas em itens fora do sprint / horas totais;%;menor;leading;por sprint;Jira/Azure DevOps;
+AG-010;agil;Uso de funcionalidades;Features com uso recorrente / features entregues;%;maior;lagging;trimestral;Product analytics;
+LS-001;lean-six-sigma;DPMO;Defeitos / (unidades x oportunidades) x 1.000.000;DPMO;menor;lagging;mensal;Dados do processo;
+LS-002;lean-six-sigma;Nível sigma;Z longo prazo + 1,5;sigma;maior;lagging;mensal;Minitab/Python;
+LS-003;lean-six-sigma;Cpk;min(LSE - média, média - LIE) / 3 sigma;índice;maior;lagging;mensal;Minitab/Python;LS-004
+LS-004;lean-six-sigma;Ppk;min(LSE - média, média - LIE) / 3 sigma global;índice;maior;lagging;mensal;Minitab/Python;
+LS-005;lean-six-sigma;FPY;Unidades boas na 1a passagem / unidades que entram;%;maior;lagging;diário;Dados do processo;
+LS-006;lean-six-sigma;RTY;Produto dos FPY de cada etapa;%;maior;lagging;semanal;Dados do processo;
+LS-007;lean-six-sigma;OEE;Disponibilidade x Performance x Qualidade;%;maior;lagging;diário;MES/SCADA do equipamento;
+LS-008;lean-six-sigma;Eficiência do ciclo (PCE);Tempo de valor agregado / lead time total;%;maior;lagging;por estudo;VSM;
+LS-009;lean-six-sigma;COPQ;Custos de falha interna + externa + avaliação + prevenção;R$;menor;lagging;mensal;Controladoria;
+LS-101;lean-six-sigma;Hard savings validados;Soma de savings aprovados por Finanças no P&L;R$;maior;lagging;mensal;Controladoria;LS-102
+LS-102;lean-six-sigma;Taxa de sustentação 12 meses;Projetos com KPI no novo patamar aos 12 meses / projetos encerrados há 12 meses;%;maior;lagging;trimestral;Escritório de EO;
+LS-103;lean-six-sigma;Cycle time DMAIC;Dias entre charter aprovado e fase Controle entregue;dias;menor;lagging;mensal;Escritório de EO;LS-102
+LS-104;lean-six-sigma;Alinhamento estratégico de projetos;Projetos ligados a objetivo Hoshin / projetos ativos;%;maior;leading;trimestral;Escritório de EO;
+LS-105;lean-six-sigma;ROI do programa;Hard savings / custo total do programa;x;maior;lagging;anual;Controladoria;
+LS-106;lean-six-sigma;Belts ativos;Belts com projeto em andamento / belts certificados;%;maior;leading;trimestral;Escritório de EO;
