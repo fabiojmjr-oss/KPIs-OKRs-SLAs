@@ -1,0 +1,18 @@
+{
+  "name": "Vértice Executivo",
+  "dataColors": ["#3b6ea5", "#e67e22", "#2e8b57", "#8e44ad", "#c0392b", "#16a085", "#7f8c8d", "#d4ac0d"],
+  "background": "#FFFFFF",
+  "foreground": "#1f2d3d",
+  "tableAccent": "#3b6ea5",
+  "good": "#2e8b57",
+  "neutral": "#e67e22",
+  "bad": "#c0392b",
+  "maximum": "#3b6ea5",
+  "center": "#f4f6f8",
+  "minimum": "#c0392b",
+  "textClasses": {
+    "title": {"fontFace": "Segoe UI Semibold", "fontSize": 13, "color": "#1f2d3d"},
+    "label": {"fontFace": "Segoe UI", "fontSize": 10, "color": "#5d6d7e"},
+    "callout": {"fontFace": "Segoe UI Light", "fontSize": 28, "color": "#1f2d3d"}
+  }
+}

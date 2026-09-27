@@ -82,3 +82,6 @@ LS-103;lean-six-sigma;Cycle time DMAIC;Dias entre charter aprovado e fase Contro
 LS-104;lean-six-sigma;Alinhamento estratégico de projetos;Projetos ligados a objetivo Hoshin / projetos ativos;%;maior;leading;trimestral;Escritório de EO;
 LS-105;lean-six-sigma;ROI do programa;Hard savings / custo total do programa;x;maior;lagging;anual;Controladoria;
 LS-106;lean-six-sigma;Belts ativos;Belts com projeto em andamento / belts certificados;%;maior;leading;trimestral;Escritório de EO;
+SC-012;supply-chain;Utilização de capacidade do CD;Pedidos / capacidade efetiva (ponderada por pedidos);%;faixa;leading;diário;WMS+planejamento;SC-009
+MM-010;middle-mile;Dependência de 3PL (KRI);Pedidos processados em unidades 3PL / pedidos totais;%;faixa;leading;mensal;WMS/TMS;
+LM-011;last-mile;Entregues em até 48h;Pacotes entregues em até 48h da compra / pacotes em rota;%;maior;lagging;diário;TMS/app de entrega;LM-001

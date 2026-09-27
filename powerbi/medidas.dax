@@ -1,0 +1,131 @@
+// ============================================================================
+// Medidas DAX — caso Vértice. Crie uma tabela vazia "_Medidas" e cole cada bloco.
+// Regra: razões sempre como DIVIDE(SUM(num), SUM(den)); nunca AVERAGE de razões diárias.
+// ============================================================================
+
+// ---------- Supply chain / CD
+Expedição no Cut-off (SC-009) =
+DIVIDE ( SUM ( fato_cd[pedidos_expedidos_cutoff] ), SUM ( fato_cd[pedidos] ) )
+
+Acurácia de Picking (SC-007) =
+1 - DIVIDE ( SUM ( fato_cd[linhas_com_erro] ), SUM ( fato_cd[linhas_separadas] ) )
+
+Produtividade Linhas/HH (SC-008) =
+DIVIDE ( SUM ( fato_cd[linhas_separadas] ), SUM ( fato_cd[horas_homem] ) )
+
+Dock-to-stock P90 h (SC-006) =
+DIVIDE (
+    SUMX ( fato_cd, fato_cd[dock_to_stock_p90_h] * fato_cd[pedidos] ),
+    CALCULATE ( SUM ( fato_cd[pedidos] ), NOT ISBLANK ( fato_cd[dock_to_stock_p90_h] ) )
+)
+
+Utilização de Capacidade (SC-012) =
+DIVIDE ( SUMX ( fato_cd, fato_cd[utilizacao] * fato_cd[pedidos] ), SUM ( fato_cd[pedidos] ) )
+
+DPMO Picking =
+DIVIDE ( SUM ( fato_cd[linhas_com_erro] ), SUM ( fato_cd[linhas_separadas] ) ) * 1000000
+
+// ---------- Middle mile
+On-time Departure (MM-001) =
+DIVIDE ( SUM ( fato_linehaul[partidas_no_horario] ), SUM ( fato_linehaul[viagens] ) )
+
+On-time Arrival (MM-002) =
+DIVIDE ( SUM ( fato_linehaul[chegadas_na_janela] ), SUM ( fato_linehaul[viagens] ) )
+
+Custo por kg (MM-004) =
+DIVIDE ( SUM ( fato_linehaul[custo_frete] ), SUM ( fato_linehaul[kg] ) )
+
+// Mix constante: custo/kg de cada região ponderado pelo peso de volume do período-base.
+// Separa ganho de eficiência de efeito mix geográfico (ver notebook, seção 6).
+Custo por kg Mix Constante =
+VAR PesoBase =
+    CALCULATETABLE (
+        SUMMARIZE ( fato_linehaul, fato_linehaul[regiao_id], "kg_base", SUM ( fato_linehaul[kg] ) ),
+        DATESBETWEEN ( dim_calendario[data], DATE ( 2025, 7, 1 ), DATE ( 2025, 12, 31 ) ),
+        REMOVEFILTERS ( dim_calendario )
+    )
+VAR TotalBase = SUMX ( PesoBase, [kg_base] )
+RETURN
+    SUMX (
+        PesoBase,
+        VAR Regiao = fato_linehaul[regiao_id]
+        RETURN
+            DIVIDE ( [kg_base], TotalBase )
+                * CALCULATE ( [Custo por kg (MM-004)], fato_linehaul[regiao_id] = Regiao )
+    )
+
+Km Vazio (MM-009) =
+DIVIDE ( SUM ( fato_linehaul[km_vazio] ), SUM ( fato_linehaul[km_total] ) )
+
+Dwell Time P90 h (MM-005) =
+DIVIDE (
+    SUMX ( fato_hub, fato_hub[dwell_time_p90_h] * fato_hub[volumes_triados] ),
+    SUM ( fato_hub[volumes_triados] )
+)
+
+Missort PPM (MM-006) =
+DIVIDE ( SUM ( fato_hub[volumes_missort] ), SUM ( fato_hub[volumes_triados] ) ) * 1000000
+
+// ---------- Last mile
+OTD vs Promessa (LM-001) =
+DIVIDE ( SUM ( fato_last_mile[entregues_no_prazo] ), SUM ( fato_last_mile[pedidos_promessa_vencida] ) )
+
+FADR (LM-002) =
+DIVIDE ( SUM ( fato_last_mile[entregues_primeira_tentativa] ), SUM ( fato_last_mile[pacotes_em_rota] ) )
+
+Custo por Entrega (LM-003) =
+DIVIDE ( SUM ( fato_last_mile[custo_operacao] ), SUM ( fato_last_mile[entregues_total] ) )
+
+Entregues até 48h (LM-011) =
+DIVIDE ( SUM ( fato_last_mile[entregues_ate_48h] ), SUM ( fato_last_mile[pacotes_em_rota] ) )
+
+Contatos SAC por 100 (LM-007) =
+DIVIDE ( SUM ( fato_last_mile[contatos_sac] ), SUM ( fato_last_mile[pacotes_em_rota] ) ) * 100
+
+Tentativa Falsa (LM-008) =
+DIVIDE ( SUM ( fato_last_mile[tentativas_falsas] ), SUM ( fato_last_mile[tentativas_malsucedidas] ) )
+
+// ---------- Marketing
+ROAS Plataforma (MK-001) =
+DIVIDE ( SUM ( fato_midia[receita_atribuida] ), SUM ( fato_midia[investimento] ) )
+
+POAS (MK-002) =
+DIVIDE ( SUM ( fato_midia[lucro_bruto_atribuido] ), SUM ( fato_midia[investimento] ) )
+
+MER (MK-003) =
+DIVIDE ( SUM ( fato_demanda[receita] ), SUM ( fato_midia[investimento] ) )
+
+CAC (MK-004) =
+DIVIDE ( SUM ( fato_midia[investimento] ), SUM ( fato_midia[novos_clientes] ) )
+
+// ---------- Pessoas
+Turnover Precoce (PE-003) =
+DIVIDE ( SUM ( fato_pessoas[desligamentos_menos_90d] ), SUM ( fato_pessoas[admissoes] ) )
+
+Taxa de Frequência (PE-008) =
+DIVIDE ( SUM ( fato_pessoas[acidentes] ), SUM ( fato_pessoas[horas_trabalhadas] ) ) * 1000000
+
+// ---------- Metas, benchmark e comparação temporal (padrão para qualquer KPI)
+Meta OTD = 0.96
+Benchmark 48h MELI 2T26 = 0.77          // camada A — ver 00-fundamentos/linha-de-base-mercado.md
+
+OTD Linha de Base 2S25 =
+CALCULATE (
+    [OTD vs Promessa (LM-001)],
+    DATESBETWEEN ( dim_calendario[data], DATE ( 2025, 7, 1 ), DATE ( 2025, 12, 31 ) ),
+    REMOVEFILTERS ( dim_calendario )
+)
+
+Nota KR OTD =
+VAR Base = [OTD Linha de Base 2S25]
+RETURN MAX ( 0, MIN ( 1, DIVIDE ( [OTD vs Promessa (LM-001)] - Base, [Meta OTD] - Base ) ) )
+
+OTD vs Ano Anterior (p.p.) =
+[OTD vs Promessa (LM-001)]
+    - CALCULATE ( [OTD vs Promessa (LM-001)], SAMEPERIODLASTYEAR ( dim_calendario[data] ) )
+
+Cor Status OTD =
+SWITCH ( TRUE (),
+    [OTD vs Promessa (LM-001)] >= [Meta OTD], "#2e8b57",
+    [OTD vs Promessa (LM-001)] >= [Meta OTD] - 0.02, "#e67e22",
+    "#c0392b" )

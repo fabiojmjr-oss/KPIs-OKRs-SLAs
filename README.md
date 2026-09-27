@@ -1,35 +1,61 @@
 # KPIs · OKRs · SLAs
 
-Biblioteca de gestão de desempenho que conecta **estratégia → execução → dados**, cobrindo operações logísticas ponta a ponta e as funções que as sustentam.
+**Sistema de gestão de desempenho que conecta estratégia → execução → dados**, cobrindo operações logísticas ponta a ponta (supply chain, middle mile, last mile) e as funções que as sustentam (pessoas, marketing de tráfego, projetos, ágil e Lean Six Sigma).
 
 > Princípio central: **OKR muda o sistema, KPI monitora a saúde do sistema, SLA contrata o nível de serviço entre partes.** Misturar os três é a causa mais comum de painéis com 80 indicadores e nenhuma decisão.
+
+O repositório tem duas camadas:
+1. **Biblioteca de referência**: fundamentos, templates e 8 áreas com árvores de KPIs, OKRs e SLAs.
+2. **Caso integrado com ferramentas**: uma empresa fictícia de grande porte (*Vértice*), com dados simulados, pacote Python, app Streamlit, notebook e modelo Power BI. Linha de base calibrada pelo que Mercado Livre, Amazon e WERC divulgam publicamente.
+
+![Painel executivo](docs/img/app-executivo.png)
+
+## Destaques do caso
+
+| Pergunta executiva | Onde é respondida | Achado |
+|---|---|---|
+| Estamos longe da régua do mercado? | [Linha de base](00-fundamentos/linha-de-base-mercado.md) · app *Executivo* | Entregas em 48h: 65% → 73% no 3T26, contra 77% divulgados pelo Mercado Livre (2T26) |
+| Como o pico se propaga? | Notebook §2 | Acima de ~90% de utilização do CD, o cut-off cai de forma não linear e o OTD ao cliente cai ainda mais |
+| É ruído ou sinal? | Notebook §3 · app *CEP* | Carta p clássica: 562 de 638 dias "fora de controle" (sobredispersão); a p′ de Laney reduz para 32 e separa o sinal real |
+| O SLA é sustentável? | Notebook §4 | CDs da expansão têm Ppk ≪ Cpk: controlar antes de contratar |
+| Como equilibrar pessoas, 3PL e custo? | Notebook §5 · app *Capacidade* | O gargalo do pico é o **recrutamento**; 1 pedido extra na semana da BF custa ~6× a média; elevar a acurácia do mix de 99,64% para 99,70% custa R$ 25 mi |
+| Os OKRs estão entregando? | Notebook §6 · app *OKRs* | Nota calculada dos dados. O2 viola o contrapeso por **efeito mix** e expõe o problema dos contrapesos não estratificados |
+
+![Otimização de capacidade](docs/img/app-capacidade.png)
 
 ## Estrutura
 
 | Pasta | Conteúdo |
 |---|---|
-| [`00-fundamentos/`](00-fundamentos/) | Hierarquia OKR/KPI/SLA, governança e cadência (Hoshin Kanri), interdependências entre áreas, anti-padrões |
+| [`00-fundamentos/`](00-fundamentos/) | Hierarquia OKR/KPI/SLA, governança e cadência (Hoshin Kanri), interdependências, **linha de base de mercado com fontes** |
 | [`templates/`](templates/) | Fichas padrão: OKR, KPI (ficha técnica), SLA |
-| [`catalogo/kpis.csv`](catalogo/kpis.csv) | Catálogo estruturado de KPIs (base para Power BI / Python / planilha) |
-| [`areas/01-supply-chain`](areas/01-supply-chain/) | Planejamento, estoque, armazenagem/CD, SCOR |
-| [`areas/02-middle-mile`](areas/02-middle-mile/) | Transferência, line-haul, cross-docking, hubs de triagem |
-| [`areas/03-last-mile`](areas/03-last-mile/) | Entrega ao cliente final, first attempt, custo por entrega |
-| [`areas/04-gestao-de-pessoas`](areas/04-gestao-de-pessoas/) | Pessoas em operação: turnover, absenteísmo, produtividade, segurança, NR-1 |
-| [`areas/05-marketing-trafego`](areas/05-marketing-trafego/) | Mídia paga / tráfego: ROAS, CAC, LTV, incrementalidade |
-| [`areas/06-projetos`](areas/06-projetos/) | Gestão de projetos e portfólio: EVM, benefícios, riscos |
-| [`areas/07-scrum-agil`](areas/07-scrum-agil/) | Scrum, Kanban, fluxo, EBM, DORA |
-| [`areas/08-lean-six-sigma`](areas/08-lean-six-sigma/) | Programa LSS, capability, COPQ, governança de Master Black Belt |
+| [`catalogo/`](catalogo/) | Catálogo de 86 KPIs (CSV) + validador |
+| [`areas/`](areas/) | 8 áreas: supply chain, middle mile, last mile, pessoas, marketing de tráfego, projetos, scrum/ágil, Lean Six Sigma |
+| [`caso-integrado/`](caso-integrado/) | Vértice: perfil, dor central, X-Matrix, OKRs 2026 (JSON), SLAs da rede híbrida, adaptação por porte |
+| [`kpikit/`](kpikit/) | Pacote Python: `simulador`, `kpis`, `spc`, `capacidade`, `okr` |
+| [`app/`](app/) | Painel Streamlit (6 abas) |
+| [`notebooks/`](notebooks/) | [`caso_vertice.ipynb`](notebooks/caso_vertice.ipynb): narrativa analítica executada |
+| [`powerbi/`](powerbi/) | Modelo estrela, medidas DAX, tema e roteiro de páginas |
+| [`dados/`](dados/) | CSVs simulados (star schema), prontos para Power BI |
 
-## Como usar
+## Como rodar
 
-1. Leia [`00-fundamentos/hierarquia-okr-kpi-sla.md`](00-fundamentos/hierarquia-okr-kpi-sla.md) — define a gramática comum.
-2. Escolha a área, parta da **árvore de KPIs** (North Star → drivers → operacionais).
-3. Selecione 3–5 KPIs de saúde, escreva no máximo 3 Objetivos com 3–4 KRs e formalize os SLAs de interface.
-4. Documente cada KPI com a [ficha técnica](templates/kpi-ficha.md) antes de colocá-lo em painel.
-5. Rode a cadência de [`00-fundamentos/governanca-e-cadencia.md`](00-fundamentos/governanca-e-cadencia.md).
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+python -m kpikit.simulador          # (re)gera dados/ — semente fixa, reprodutível
+pytest -q                           # 41 testes
+streamlit run app/streamlit_app.py  # painel
+python notebooks/gerar_notebook.py  # reexecuta o notebook
+```
 
 ## Convenções
 
-- **Metas e benchmarks** marcados com ⚠️ são referências indicativas: validar contra a edição vigente da fonte e contra a linha de base própria antes de contratar.
-- Toda métrica tem **polaridade** (↑ maior é melhor / ↓ menor é melhor), **tipo** (leading/lagging) e **dono**.
-- Todo KPI de eficiência é pareado com um KPI de qualidade/serviço (*métrica de contrapeso*) para neutralizar a Lei de Goodhart.
+- **Níveis de confiança** dos benchmarks: A (divulgação oficial) · B (associação setorial) · C (fornecedor/blog) · D (premissa). Marcações ⚠️ indicam referência a validar.
+- Todo KPI tem **polaridade**, **tipo** (leading/lagging), **dono** e, quando mede eficiência, **métrica de contrapeso** (anti-Goodhart).
+- Razões são agregadas como **Σnumerador/Σdenominador**, nunca como média de razões.
+
+## Aviso
+
+Material de estudo e portfólio. A empresa *Vértice* e todos os dados operacionais são **fictícios**. Referências a Mercado Livre, Amazon e WERC usam apenas informações públicas, com fonte citada, e não indicam afiliação.
