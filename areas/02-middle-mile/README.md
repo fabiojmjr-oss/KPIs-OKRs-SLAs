@@ -65,5 +65,14 @@ North Star: % volume que chega na base de last mile dentro da janela planejada
 | Qualidade | Transportadora → Embarcador | Avaria + extravio ≤ N/10k volumes | contratual |
 | Disponibilidade de frota | Transportadora → Embarcador | Veículos disponibilizados / solicitados com D-1 | 98% |
 
+## Ferramentas
+[`kpikit/middle_mile.py`](../../kpikit/middle_mile.py): consolidação 2D (peso × m³, heurística FFD e ótimo por MILP), mix de frota, simulação da política de despacho (esperar encher × sair no horário) e roteirização milk run (Clarke-Wright + 2-opt) com dimensionamento de veículo por rota e custo de jornada. Explicado passo a passo em [`notebooks/middle_mile_consolidacao_rotas.ipynb`](../../notebooks/middle_mile_consolidacao_rotas.ipynb) e interativo na aba *Middle mile* do app.
+
+| ID | KPI | Fórmula | Pol. | Nota |
+|---|---|---|---|---|
+| MM-011 | Paradas por rota | Paradas / rotas | ↑ | Contrapeso: MM-013 |
+| MM-012 | Volume despachado no prazo do hub | m³ que saem no prazo interno / m³ recebidos | ↑ | Mede a política de despacho |
+| MM-013 | Rotas acima da jornada | Rotas com pernoite ou dupla / rotas | ↓ | Limite de serviço e de conformidade |
+
 ## Caso de mercado
 - **Mercado Livre** montou malha aérea própria (Meli Air, em parceria com companhias aéreas) e dezenas de centros de *cross-docking/service centers* para encurtar o middle mile — a decisão de verticalizar veio de o middle mile ser o gargalo do prazo, não o last mile. ⚠️ Detalhes de frota e número de hubs mudam trimestralmente; conferir relatório vigente.

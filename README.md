@@ -6,7 +6,7 @@
 
 O repositório tem duas camadas:
 1. **Biblioteca de referência**: fundamentos, templates e 8 áreas com árvores de KPIs, OKRs e SLAs.
-2. **Caso integrado com ferramentas**: uma empresa fictícia de grande porte (*Vértice*), com dados simulados, pacote Python, app Streamlit, 3 notebooks didáticos (incluindo um projeto DMAIC completo) e modelo Power BI. Linha de base calibrada pelo que Mercado Livre, Amazon e WERC divulgam publicamente.
+2. **Caso integrado com ferramentas**: uma empresa fictícia de grande porte (*Vértice*), com dados simulados, pacote Python, app Streamlit, 4 notebooks didáticos (incluindo um projeto DMAIC completo) e modelo Power BI. Linha de base calibrada pelo que Mercado Livre, Amazon e WERC divulgam publicamente.
 
 ![Painel executivo](docs/img/app-executivo.png)
 
@@ -22,11 +22,15 @@ O repositório tem duas camadas:
 | Os OKRs estão entregando? | Notebook §6 · app *OKRs* | Nota calculada dos dados. O2 viola o contrapeso por **efeito mix** e expõe o problema dos contrapesos não estratificados |
 | Quem sai nos primeiros 90 dias? | [Notebook de pessoas](notebooks/pessoas_forca_de_trabalho.ipynb) · app *Pessoas* | Buddy reduz as chances de saída precoce em ~62%; agência, turno noturno e distância aumentam o risco. Turnover precoce só se mede em **coorte madura** (censura) |
 | Quantas pessoas escalar? | Notebook de pessoas §3 | Escala 6x1 otimizada: **−14% de quadro** vs. dimensionar pelo pior dia; o custo de cada política de folga no domingo, calculado |
+| Esperar encher ou sair no horário? | [Notebook de middle mile](notebooks/middle_mile_consolidacao_rotas.ipynb) · app *Middle mile* | Regra híbrida (encher até 80% **ou** trava de meia janela): 100% no prazo com custo/m³ ~12% menor que o horário fixo de 4 h; "esperar encher" sem trava perde 3–6% do volume |
+| Como roteirizar o interior? | Notebook de middle mile §3 | Milk run + veículo certo por rota: **−44% de custo/dia** contra "um caminhão por cidade". A rota mais barata dura 30 h e quebra o D+1: a extensão da rota é decisão de **serviço** |
 | Como fechar um gap de capability? | [Notebook DMAIC](notebooks/dmaic_dock_to_stock_am1.ipynb) · [A3](caso-integrado/dmaic-dock-to-stock-am1.md) · app *DMAIC* | Pareto da média ≠ Pareto da cauda. P90 do dock-to-stock no CD-AM1: 9,6 h → 4,9 h; Ppk (percentis) 0,44 → 1,18 |
 
 ![Otimização de capacidade](docs/img/app-capacidade.png)
 
 ![Projeto DMAIC](docs/img/app-dmaic.png)
+
+![Middle mile](docs/img/app-middle-mile.png)
 
 ## Estrutura
 
@@ -34,12 +38,12 @@ O repositório tem duas camadas:
 |---|---|
 | [`00-fundamentos/`](00-fundamentos/) | Hierarquia OKR/KPI/SLA, governança e cadência (Hoshin Kanri), interdependências, **linha de base de mercado com fontes** |
 | [`templates/`](templates/) | Fichas padrão: OKR, KPI (ficha técnica), SLA |
-| [`catalogo/`](catalogo/) | Catálogo de 89 KPIs (CSV) + validador |
+| [`catalogo/`](catalogo/) | Catálogo de 92 KPIs (CSV) + validador |
 | [`areas/`](areas/) | 8 áreas: supply chain, middle mile, last mile, pessoas, marketing de tráfego, projetos, scrum/ágil, Lean Six Sigma |
 | [`caso-integrado/`](caso-integrado/) | Vértice: perfil, dor central, X-Matrix, OKRs 2026 (JSON), SLAs da rede híbrida, adaptação por porte, A3 do projeto DMAIC |
-| [`kpikit/`](kpikit/) | Pacote Python: `simulador`, `kpis`, `spc`, `capacidade`, `okr`, `pessoas`, `dmaic` |
-| [`app/`](app/) | Painel Streamlit (8 abas) · [como publicar](docs/DEPLOY.md) |
-| [`notebooks/`](notebooks/) | Executados, com caixas **🧠 Por dentro do código** e **🎯 Leitura executiva**: [`caso_vertice`](notebooks/caso_vertice.ipynb) · [`pessoas_forca_de_trabalho`](notebooks/pessoas_forca_de_trabalho.ipynb) · [`dmaic_dock_to_stock_am1`](notebooks/dmaic_dock_to_stock_am1.ipynb) |
+| [`kpikit/`](kpikit/) | Pacote Python: `simulador`, `kpis`, `spc`, `capacidade`, `okr`, `pessoas`, `dmaic`, `middle_mile` |
+| [`app/`](app/) | Painel Streamlit (9 abas) · [como publicar](docs/DEPLOY.md) |
+| [`notebooks/`](notebooks/) | Executados, com caixas **🧠 Por dentro do código** e **🎯 Leitura executiva**: [`caso_vertice`](notebooks/caso_vertice.ipynb) · [`pessoas_forca_de_trabalho`](notebooks/pessoas_forca_de_trabalho.ipynb) · [`dmaic_dock_to_stock_am1`](notebooks/dmaic_dock_to_stock_am1.ipynb) · [`middle_mile_consolidacao_rotas`](notebooks/middle_mile_consolidacao_rotas.ipynb) |
 | [`powerbi/`](powerbi/) | Modelo estrela, medidas DAX, tema e roteiro de páginas |
 | [`dados/`](dados/) | CSVs simulados (star schema), prontos para Power BI |
 
@@ -50,9 +54,9 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 
 python -m kpikit.simulador          # (re)gera dados/ — semente fixa, reprodutível
-pytest -q                           # 50 testes
+pytest -q                           # 57 testes
 streamlit run app/streamlit_app.py  # painel
-python notebooks/gerar_notebook.py  # reexecuta os 3 notebooks
+python notebooks/gerar_notebook.py  # reexecuta os 4 notebooks
 ```
 
 ## Convenções

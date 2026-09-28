@@ -88,3 +88,6 @@ LM-011;last-mile;Entregues em até 48h;Pacotes entregues em até 48h da compra /
 PE-011;pessoas;Cobertura da escala;Presentes esperados / operadores necessários (por dia);%;maior;leading;diário;Escala+ponto+WMS;PE-012
 PE-012;pessoas;Ociosidade da escala;(Presentes esperados - necessários) / presentes esperados;%;menor;leading;semanal;Escala+WMS;PE-011
 PE-013;pessoas;Retenção em 90 dias (Kaplan-Meier);S(90) da curva de sobrevivência dos admitidos;%;maior;lagging;mensal;HRIS;PE-003
+MM-011;middle-mile;Paradas por rota (milk run);Paradas atendidas / rotas;paradas;maior;lagging;diário;TMS/roteirizador;MM-013
+MM-012;middle-mile;Volume despachado no prazo do hub;m³ que saem do hub em até o prazo interno / m³ recebidos;%;maior;leading;diário;WMS/sorter;MM-003
+MM-013;middle-mile;Rotas acima da jornada;Rotas com duração > jornada máxima (pernoite ou dupla) / rotas;%;menor;leading;semanal;TMS/telemetria;MM-011

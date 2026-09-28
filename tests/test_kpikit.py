@@ -160,3 +160,63 @@ def test_dmaic_piloto_melhora_capability(recebimentos):
     depois = dmaic.capabilidade_nao_normal(recebimentos.query("fase == 'piloto'").dock_to_stock_h)
     assert antes["ppk_percentil"] < 1.0 <= depois["ppk_percentil"]
     assert antes["ppk_normal_enganoso"] > antes["ppk_percentil"]   # normal superestima em cauda longa
+
+
+# ---------------------------------------------------------------- middle mile
+from kpikit import middle_mile as mm  # noqa: E402
+
+
+def test_consolidacao_respeita_capacidade_e_limite_inferior():
+    lotes = mm.gerar_lotes(80)
+    v = mm.FROTA["Truck"]
+    r = mm.resumo_ocupacao(mm.consolidar(lotes, v), v)
+    assert (r.ocup_peso <= 1 + 1e-9).all() and (r.ocup_volume <= 1 + 1e-9).all()
+    assert len(r) >= mm.limite_inferior_veiculos(lotes, v)
+
+
+def test_ecommerce_enche_por_volume():
+    v = mm.FROTA["Truck"]
+    r = mm.resumo_ocupacao(mm.consolidar(mm.gerar_lotes(80), v), v)
+    assert (r.restricao_ativa == "volume").mean() > 0.5
+
+
+def test_otimo_nunca_pior_que_heuristica():
+    lotes = mm.gerar_lotes(25, semente=5)
+    v = mm.FROTA["VUC"]
+    n_otimo, _ = mm.consolidar_otimo(lotes, v)
+    assert mm.limite_inferior_veiculos(lotes, v) <= n_otimo <= mm.consolidar(lotes, v).veiculo.nunique()
+
+
+def test_mix_frota_cobre_carga():
+    mix = mm.mix_frota(30_000, 170, 240)
+    frota = {v.nome: v for v in mm.FROTA.values()}
+    assert sum(frota[n].peso_kg * q for n, q in zip(mix.veiculo, mix.quantidade)) >= 30_000
+    assert sum(frota[n].volume_m3 * q for n, q in zip(mix.veiculo, mix.quantidade)) >= 170
+
+
+def test_esperar_encher_sem_trava_perde_prazo():
+    v = mm.FROTA["Carreta"]
+    com = mm.simular_despacho(350, v, 240, "encher", 1.0)
+    sem = mm.simular_despacho(350, v, 240, "encher", 1.0, trava_h=np.inf)
+    assert sem.ocupacao_media > com.ocupacao_media and sem.pct_volume_no_prazo < com.pct_volume_no_prazo
+
+
+def test_clarke_wright_viavel_e_melhor_que_direto():
+    C = mm.CIDADES_NE
+    D = mm.matriz_distancias(C)
+    kg = C.demanda_kg.to_numpy(float)
+    m3 = kg / mm.DENSIDADE_ECOMMERCE_KG_M3
+    v = mm.FROTA["Truck"]
+    rotas = mm.clarke_wright(kg, m3, D, v, km_max=900)
+    atendidas = sorted(c for r in rotas for c in r)
+    assert set(atendidas) == set(range(1, len(C)))
+    ev = mm.avaliar_rotas(rotas, kg, m3, D, v)
+    assert (ev.kg <= v.peso_kg + 1e-6).all() and (ev.m3 <= v.volume_m3 + 1e-6).all()
+    assert ev.km.sum() < mm.avaliar_rotas(mm.rotas_diretas(kg, m3, v), kg, m3, D, v).km.sum()
+
+
+def test_dois_opt_desfaz_cruzamento():
+    pts = pd.DataFrame({"lat": [0, 0, 1, 1, 0], "lon": [0, 1, 1, 0, 2]})   # hub + 4 pontos
+    D = mm.matriz_distancias(pts)
+    cruzada = [1, 3, 2, 4]
+    assert mm.comprimento(mm.dois_opt(cruzada, D), D) < mm.comprimento(cruzada, D)
