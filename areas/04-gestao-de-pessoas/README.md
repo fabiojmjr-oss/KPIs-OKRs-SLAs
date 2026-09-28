@@ -48,6 +48,11 @@ North Star: Capacidade efetiva disponível vs. planejada (%)
 | PE-008 | Taxa de frequência | Nº acidentes com e sem afastamento × 1.000.000 / horas-homem trabalhadas | ↓ | Conforme ABNT NBR 14280 |
 | PE-009 | Taxa de gravidade | Dias perdidos/debitados × 1.000.000 / horas-homem trabalhadas | ↓ | NBR 14280 |
 | PE-010 | Sucessão | Posições-chave com sucessor "pronto agora" / posições-chave | ↑ | |
+| PE-011 | Cobertura da escala | Presentes esperados / operadores necessários, por dia | ↑ | Abaixo de 100% = pedido fora do cut-off |
+| PE-012 | Ociosidade da escala | (Presentes − necessários) / presentes | ↓ | Contrapeso do PE-011 |
+| PE-013 | Retenção em 90 dias | S(90) da curva de Kaplan-Meier dos admitidos | ↑ | Trata censura; complementa PE-003 |
+
+> **Ferramentas:** previsão de absenteísmo, curva de retenção (Kaplan-Meier + regressão logística) e escala 6x1 por programação inteira em [`kpikit/pessoas.py`](../../kpikit/pessoas.py), explicadas passo a passo em [`notebooks/pessoas_forca_de_trabalho.ipynb`](../../notebooks/pessoas_forca_de_trabalho.ipynb).
 
 ## Contexto regulatório (Brasil)
 - ⚠️ A **NR-1** atualizada (Portaria MTE nº 1.419/2024) incluiu os **riscos psicossociais** no Gerenciamento de Riscos Ocupacionais (GRO/PGR); a fiscalização punitiva foi adiada para maio de 2026. Em operações com metas de produtividade agressivas, turnos noturnos e pressão de pico, isso cria um KPI de **conformidade** novo — e um argumento para metas sustentáveis. Validar status com o SESMT/jurídico.

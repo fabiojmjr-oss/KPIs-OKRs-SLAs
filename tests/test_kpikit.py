@@ -94,3 +94,69 @@ def test_meta_de_acuracia_mais_alta_nunca_custa_menos(dados):
     dem = capacidade.demanda_projetada(dados)
     curva = capacidade.curva_tradeoff(capacidade.Cenario(demanda=dem), "acuracia_meta", [0.996, 0.9968, 0.997])
     assert curva.custo_total.is_monotonic_increasing
+
+
+# ---------------------------------------------------------------- pessoas
+from kpikit import config as cfg, dmaic, pessoas  # noqa: E402
+
+
+def test_kaplan_meier_sem_censura_e_proporcao_simples():
+    dias = pd.Series([10, 20, 30, 40])
+    km = pessoas.kaplan_meier(dias, pd.Series([1, 1, 1, 1]))
+    assert pessoas.sobrevivencia_em(km, 25) == pytest.approx(0.5)
+
+
+def test_kaplan_meier_trata_censura():
+    # 2 saem no dia 10; 2 ainda ativos (censurados) no dia 5 → quem restou em risco no dia 10 são 2
+    km = pessoas.kaplan_meier(pd.Series([5, 5, 10, 10]), pd.Series([0, 0, 1, 1]))
+    assert pessoas.sobrevivencia_em(km, 10) == pytest.approx(0.0)
+
+
+def test_logistica_recupera_efeito_do_buddy(dados):
+    X, y = pessoas.matriz_risco_saida(dados["fato_colaboradores"], cfg.FIM)
+    m = pessoas.regressao_logistica(X, y)
+    assert m.loc["com_buddy", "razao_chances"] < 0.6 and m.loc["com_buddy", "p_valor"] < 0.001
+
+
+def test_pe003_usa_apenas_coortes_maduras(dados):
+    import math
+    assert math.isnan(kpis.calcular(dados, "PE-003", inicio="2026-08-01", fim="2026-09-30"))
+
+
+def test_previsao_absenteismo_bate_regua_ingenua(dados):
+    _, m = pessoas.previsao_absenteismo(dados)
+    assert m["mae_modelo_pp"] < m["mae_ingenuo_pp"]
+
+
+def test_escala_cobre_necessidade_e_economiza():
+    nec = pd.Series([100, 90, 90, 90, 80, 60, 50], index=pessoas.DIAS)
+    ab = pd.Series([0.06] + [0.05] * 6, index=pessoas.DIAS)
+    r = pessoas.escala_6x1(nec, ab)
+    assert (r.cobertura.presentes_esperados >= nec.to_numpy() - 1e-6).all()
+    assert r.quadro <= r.quadro_ingenuo
+    assert pessoas.escala_6x1(nec, ab, folga_domingo_min=0.5).quadro >= r.quadro
+
+
+# ---------------------------------------------------------------- dmaic
+@pytest.fixture(scope="module")
+def recebimentos():
+    return dmaic.gerar_recebimentos()
+
+
+def test_dmaic_causas_plantadas_sao_detectadas(recebimentos):
+    base = recebimentos[recebimentos.fase == "medir"]
+    assert dmaic.comparar_grupos(base, "agendado")["mann_whitney_p"] < 0.001
+    assert dmaic.qui_quadrado(base, "fornecedor")["p_valor"] < 0.001
+
+
+def test_dmaic_media_e_cauda_tem_causas_diferentes(recebimentos):
+    base = recebimentos[recebimentos.fase == "medir"]
+    assert dmaic.pareto(base).index[0] == "espera_doca_h"
+    assert dmaic.pareto(base, so_cauda=True).index[0] == "tratativa_divergencia_h"
+
+
+def test_dmaic_piloto_melhora_capability(recebimentos):
+    antes = dmaic.capabilidade_nao_normal(recebimentos.query("fase == 'medir'").dock_to_stock_h)
+    depois = dmaic.capabilidade_nao_normal(recebimentos.query("fase == 'piloto'").dock_to_stock_h)
+    assert antes["ppk_percentil"] < 1.0 <= depois["ppk_percentil"]
+    assert antes["ppk_normal_enganoso"] > antes["ppk_percentil"]   # normal superestima em cauda longa

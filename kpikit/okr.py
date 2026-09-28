@@ -53,7 +53,8 @@ def pontuar(dados: dict[str, pd.DataFrame], okrs: dict | None = None) -> tuple[p
         notas = []
         for kr in o["krs"]:
             base = _valor(dados, kr["kpi_id"], pb, kr.get("filtro"))
-            atual = _valor(dados, kr["kpi_id"], pa, kr.get("filtro"))
+            # Um KR pode ter período próprio (ex.: coorte que já completou 90 dias).
+            atual = _valor(dados, kr["kpi_id"], kr.get("periodo_atual", pa), kr.get("filtro"))
             n = nota_kr(base, kr["meta"], atual)
             notas.append(n)
             krs.append({"objetivo": o["id"], "kr": kr["id"], "descricao": kr["descricao"],

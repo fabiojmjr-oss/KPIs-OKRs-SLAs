@@ -24,6 +24,9 @@ CSVs em [`../dados/`](../dados/), gerados por `python -m kpikit.simulador`. Deli
 | dim_unidade[unidade_id] → fato_cd / fato_hub / fato_last_mile / fato_pessoas | 1:N | único |
 | dim_regiao[regiao_id] → dim_unidade, fato_linehaul, fato_demanda | 1:N | único |
 
+| dim_unidade[unidade_id] → fato_colaboradores (1 linha por admissão) | 1:N | único; relacione `data_admissao` à dim_calendario como relação **ativa** e `data_desligamento` como **inativa** (use `USERELATIONSHIP`) |
+| fato_recebimentos_am1 | — | tabela do estudo DMAIC (nível recebimento); use sozinha ou relacione a data de `chegada` à dim_calendario |
+
 Marque `dim_calendario` como **tabela de datas**.
 
 ## 3. Medidas

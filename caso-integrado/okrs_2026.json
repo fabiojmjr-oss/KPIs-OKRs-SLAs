@@ -48,7 +48,7 @@
       "krs": [
         {"id": "KR4.1", "kpi_id": "MK-002", "descricao": "POAS (lucro bruto atribuído / mídia)", "meta": 1.80, "tipo": "committed"},
         {"id": "KR4.2", "kpi_id": "LM-003", "descricao": "Custo por entrega bem-sucedida", "meta": 12.5, "tipo": "committed", "polaridade": "menor"},
-        {"id": "KR4.3", "kpi_id": "PE-003", "descricao": "Turnover precoce (< 90 dias)", "meta": 0.20, "tipo": "aspirational", "polaridade": "menor"}
+        {"id": "KR4.3", "kpi_id": "PE-003", "descricao": "Turnover precoce (< 90 dias) · última coorte madura (2T26)", "meta": 0.20, "tipo": "aspirational", "polaridade": "menor", "periodo_atual": ["2026-04-01", "2026-06-30"]}
       ],
       "contrapeso": {"kpi_id": "PE-008", "limite": 12.0, "polaridade": "menor", "descricao": "Taxa de frequência de acidentes ≤ 12"}
     }

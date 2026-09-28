@@ -85,3 +85,6 @@ LS-106;lean-six-sigma;Belts ativos;Belts com projeto em andamento / belts certif
 SC-012;supply-chain;Utilização de capacidade do CD;Pedidos / capacidade efetiva (ponderada por pedidos);%;faixa;leading;diário;WMS+planejamento;SC-009
 MM-010;middle-mile;Dependência de 3PL (KRI);Pedidos processados em unidades 3PL / pedidos totais;%;faixa;leading;mensal;WMS/TMS;
 LM-011;last-mile;Entregues em até 48h;Pacotes entregues em até 48h da compra / pacotes em rota;%;maior;lagging;diário;TMS/app de entrega;LM-001
+PE-011;pessoas;Cobertura da escala;Presentes esperados / operadores necessários (por dia);%;maior;leading;diário;Escala+ponto+WMS;PE-012
+PE-012;pessoas;Ociosidade da escala;(Presentes esperados - necessários) / presentes esperados;%;menor;leading;semanal;Escala+WMS;PE-011
+PE-013;pessoas;Retenção em 90 dias (Kaplan-Meier);S(90) da curva de sobrevivência dos admitidos;%;maior;lagging;mensal;HRIS;PE-003

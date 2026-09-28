@@ -73,5 +73,8 @@ North Star: Resultado financeiro validado por Finanças e sustentado em 12 meses
 | Validação financeira | Savings validados por Finanças em ≤ 30 dias do encerramento | 90% |
 | Suporte estatístico | Pedidos de análise respondidos em ≤ 3 dias úteis | 90% |
 
+## Projeto-exemplo completo
+[`notebooks/dmaic_dock_to_stock_am1.ipynb`](../../notebooks/dmaic_dock_to_stock_am1.ipynb) mostra um DMAIC de ponta a ponta sobre o dock-to-stock do CD-AM1: charter, SIPOC, MSA, capability não normal, Pareto da média × Pareto da cauda, testes de hipótese, regressão, piloto, carta por fases e plano de controle. Resumo A3 em [`caso-integrado/dmaic-dock-to-stock-am1.md`](../../caso-integrado/dmaic-dock-to-stock-am1.md).
+
 ## Integração com as demais áreas
 Cada KPI das pastas 01–07 que estiver **fora de controle estatístico de forma recorrente** é candidato natural a projeto DMAIC. Use o [catálogo](../../catalogo/kpis.csv) para priorizar por impacto (COPQ) × esforço.

@@ -6,5 +6,6 @@
 - Benchmarks: nível de confiança A/B/C/D (ver `00-fundamentos/linha-de-base-mercado.md`); ⚠️ quando não verificado. Nunca inventar números de mercado.
 - Caso Vértice: empresa e dados fictícios. Premissas ficam em `kpikit/config.py`; linha de base é calculada dos dados, nunca digitada.
 - Números citados em textos (README, notebook, caso) devem ser conferidos contra a saída do código.
-- Ambiente: `python -m venv .venv && .venv/bin/pip install -r requirements.txt`.
+- Ambiente: `python -m venv .venv && .venv/bin/pip install -r requirements-dev.txt`.
+- Notebooks são gerados por código: células em `notebooks/nb_*.py`, executados por `notebooks/gerar_notebook.py`. Edite o `.py`, nunca o `.ipynb`. Didática fica nos notebooks (caixas 🧠/🎯); o código de `kpikit/` fica limpo.
 - Após mudanças: `python catalogo/validar_catalogo.py`, `pytest -q`, `python -m kpikit.simulador` e, se o simulador mudar, `python notebooks/gerar_notebook.py`.

@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements-dev.txt
       - name: Catálogo de KPIs
         run: python catalogo/validar_catalogo.py
       - name: Testes

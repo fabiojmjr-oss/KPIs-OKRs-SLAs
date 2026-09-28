@@ -75,6 +75,7 @@ INICIATIVAS = {
     "roteirizacao_eta": ("Roteirização dinâmica e ETA proativo ao cliente", date(2026, 4, 1)),
     "midia_poas": ("Alocação de mídia por POAS e testes de incrementalidade", date(2026, 4, 1)),
     "rede_pudo": ("Rede de pontos de retirada (PUDO/lockers) nas capitais", date(2026, 5, 1)),
+    "dmaic_am1": ("DMAIC dock-to-stock CD-AM1: agendamento, ASN, recebimento parcial", date(2026, 6, 1)),
 }
 
 # Causa especial injetada para demonstração de CEP: pane de sorter no HUB-BA.

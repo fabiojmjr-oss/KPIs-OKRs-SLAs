@@ -76,7 +76,10 @@ REGISTRO: dict[str, DefKPI] = {
     "MK-004": DefKPI("CAC", "fato_midia", "investimento", "novos_clientes", formato="R$ {:.2f}"),
     "MK-007": DefKPI("CTR", "fato_midia", "cliques", "impressoes"),
     "PE-002": DefKPI("Turnover mensal", "fato_pessoas", "desligamentos", "headcount"),
-    "PE-003": DefKPI("Turnover precoce (<90d)", "fato_pessoas", "desligamentos_menos_90d", "admissoes"),
+    # Só coortes maduras: quem entrou há menos de 90 dias ainda pode sair (censura à direita).
+    "PE-003": DefKPI("Turnover precoce (<90d)", "fato_pessoas",
+                     lambda d: d.desligamentos_menos_90d.where(d.coorte_madura, 0),
+                     lambda d: d.admissoes.where(d.coorte_madura, 0)),
     "PE-008": DefKPI("Taxa de frequência de acidentes", "fato_pessoas", "acidentes", "horas_trabalhadas",
                      escala=1e6, formato="{:.2f}"),
     "PE-009": DefKPI("Taxa de gravidade", "fato_pessoas", "dias_perdidos", "horas_trabalhadas",

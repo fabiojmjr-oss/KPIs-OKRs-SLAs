@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from kpikit import capacidade, config, kpis, okr, simulador, spc  # noqa: E402
+from kpikit import capacidade, config, dmaic, kpis, okr, pessoas, simulador, spc  # noqa: E402
 
 st.set_page_config(page_title="Vértice · KPIs, OKRs e SLAs", layout="wide")
 
@@ -30,6 +30,17 @@ def okrs_pontuados():
     return okr.pontuar(dados())
 
 
+@st.cache_data
+def absenteismo_previsto():
+    return pessoas.previsao_absenteismo(dados())
+
+
+@st.cache_data
+def modelo_saida():
+    X, y = pessoas.matriz_risco_saida(dados()["fato_colaboradores"], config.FIM)
+    return pessoas.regressao_logistica(X, y)
+
+
 def e_percentual(kpi_id: str) -> bool:
     return "%" in kpis.REGISTRO[kpi_id].formato
 
@@ -39,7 +50,7 @@ st.title("Vértice · Painel de Desempenho")
 st.caption(f"{config.EMPRESA} · dados sintéticos de {config.INICIO:%d/%m/%Y} a {config.FIM:%d/%m/%Y} · "
            "benchmarks reais em 00-fundamentos/linha-de-base-mercado.md")
 
-abas = st.tabs(["Executivo", "OKRs 2026", "Operação", "CEP", "Capacidade", "Marketing"])
+abas = st.tabs(["Executivo", "OKRs 2026", "Operação", "CEP", "Capacidade", "Pessoas", "DMAIC", "Marketing"])
 
 # ---------------------------------------------------------------- Executivo
 with abas[0]:
@@ -183,8 +194,75 @@ with abas[4]:
         with st.expander("Plano semanal"):
             st.dataframe(r.plano, use_container_width=True)
 
-# ---------------------------------------------------------------- Marketing
+# ---------------------------------------------------------------- Pessoas
 with abas[5]:
+    st.subheader("Força de trabalho · retenção e escala")
+    base_sv = pessoas.base_sobrevivencia(d["fato_colaboradores"], config.FIM)
+    fator = st.selectbox("Curva de retenção por", ["com_buddy", "canal_recrutamento", "turno", "modelo", "regiao_id"])
+    fig = go.Figure()
+    for valor, g in base_sv.groupby(fator):
+        k = pessoas.kaplan_meier(g.dias, g.evento)
+        k = k[k.index <= 180]
+        fig.add_scatter(x=k.index, y=k.sobrevivencia, mode="lines", line_shape="hv", name=f"{valor} (n={len(g):,})")
+    fig.add_vline(x=90, line_dash="dot", line_color=CINZA)
+    fig.update_layout(height=380, yaxis_tickformat=".0%", xaxis_title="dias desde a admissão",
+                      yaxis_title="ainda na empresa", yaxis_range=[0.4, 1.01])
+    st.plotly_chart(fig, use_container_width=True)
+    lr = pessoas.logrank(base_sv.dias.clip(upper=90), base_sv.evento.where(base_sv.dias <= 90, 0), base_sv[fator])
+    st.caption(f"Log-rank até 90 dias: χ² = {lr['qui2']:.1f}, p = {lr['p_valor']:.1e}. Kaplan-Meier trata quem ainda "
+               "está ativo como censurado (sem viés de coorte imatura).")
+    with st.expander("Fatores de risco de saída em 90 dias (regressão logística)"):
+        st.dataframe(modelo_saida()[["razao_chances", "rc_ic_inf", "rc_ic_sup", "p_valor"]].round(3),
+                     use_container_width=True)
+    st.divider()
+    st.markdown("**Escala 6x1 · programação inteira**")
+    prev, _ = absenteismo_previsto()
+    c = st.columns(3)
+    cd_esc = c[0].selectbox("CD", sorted(d["fato_cd"].unidade_id.unique()), index=5, key="cd_escala")
+    pct = c[1].slider("Percentil da demanda para dimensionar", 0.5, 0.95, 0.85, 0.05)
+    dom = c[2].slider("Mínimo do quadro com folga no domingo", 0.0, 0.5, 0.0, 0.05)
+    nec = pessoas.necessidade_semanal(d, cd_esc, "2026-04-01", "2026-09-30", percentil=pct)
+    ab = (prev.query("unidade_id == @cd_esc and amostra == 'teste'")
+          .assign(dia=lambda x: x.data.dt.dayofweek.map(dict(enumerate(pessoas.DIAS))))
+          .groupby("dia").previsto.mean().reindex(pessoas.DIAS))
+    esc = pessoas.escala_6x1(nec, ab, folga_domingo_min=dom)
+    k = st.columns(3)
+    k[0].metric("Quadro otimizado", f"{esc.quadro:,}")
+    k[1].metric("Quadro plano (pior dia)", f"{esc.quadro_ingenuo:,}", delta=f"{esc.quadro - esc.quadro_ingenuo:,}",
+                delta_color="inverse")
+    k[2].metric("Ociosidade da escala (PE-012)", f"{esc.horas_ociosas_pct:.1%}")
+    cob = esc.cobertura.reset_index()
+    fig = px.bar(cob, x="dia", y=["presentes_esperados"], title="Presentes esperados × necessidade")
+    fig.add_scatter(x=cob.dia, y=cob.necessidade, mode="lines+markers", name="necessidade", line_color="black")
+    st.plotly_chart(fig, use_container_width=True)
+
+# ---------------------------------------------------------------- DMAIC
+with abas[6]:
+    st.subheader("DMAIC · dock-to-stock do CD-AM1")
+    rec = d["fato_recebimentos_am1"]
+    cap_f = pd.DataFrame({f: dmaic.capabilidade_nao_normal(rec.loc[rec.fase == f, "dock_to_stock_h"])
+                          for f in dmaic.JANELAS}).T
+    k = st.columns(3)
+    for col, f in zip(k, dmaic.JANELAS):
+        col.metric(f"P90 · {f}", f"{cap_f.loc[f, 'p90']:.1f} h", help=f"Ppk (percentis) {cap_f.loc[f, 'ppk_percentil']:.2f}")
+    c1, c2 = st.columns(2)
+    base_m = rec[rec.fase == "medir"]
+    par = pd.concat({"todas as cargas": dmaic.pareto(base_m).pct,
+                     "acima do SLA": dmaic.pareto(base_m, so_cauda=True).pct}, axis=1).reset_index(names="etapa")
+    c1.plotly_chart(px.bar(par, x="etapa", y=["todas as cargas", "acima do SLA"], barmode="group",
+                           title="Pareto: a média e a cauda têm causas diferentes").update_layout(yaxis_tickformat=".0%"),
+                    use_container_width=True)
+    serie = dmaic.serie_diaria_p90(rec).reset_index(names="dia")
+    fig = px.line(serie, x="dia", y="p90", color="fase", markers=True, title="P90 diário por fase")
+    fig.add_hline(y=dmaic.LSE_HORAS, line_dash="dash", line_color=VERMELHO, annotation_text="SLA 12 h")
+    c2.plotly_chart(fig, use_container_width=True)
+    st.dataframe(cap_f[["n", "mediana", "p90", "pct_fora_sla", "ppk_percentil", "ppk_normal_enganoso"]].round(3),
+                 use_container_width=True)
+    st.caption("Ppk pelo método dos percentis (ISO 22514-2). O Ppk 'normal' superestima a capacidade em tempos com cauda "
+               "longa. Análise completa em notebooks/dmaic_dock_to_stock_am1.ipynb.")
+
+# ---------------------------------------------------------------- Marketing
+with abas[7]:
     st.subheader("Mídia paga · ROAS de plataforma × POAS × MER")
     m = pd.concat([kpis.calcular(d, "MK-001", freq="MS"), kpis.calcular(d, "MK-002", freq="MS"),
                    kpis.mer(d, freq="MS").rename("MER")], axis=1).reset_index()

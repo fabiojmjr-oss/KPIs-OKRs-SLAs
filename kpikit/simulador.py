@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from kpikit import config as cfg
+from kpikit.dmaic import gerar_recebimentos
 
 PASTA_DADOS = Path(__file__).resolve().parent.parent / "dados"
 FATOR_DIA_SEMANA = np.array([1.15, 1.08, 1.02, 1.00, 0.95, 0.82, 0.78])  # seg..dom
@@ -43,6 +44,15 @@ def _fator_capacidade(cal: pd.DataFrame, regiao_id: str) -> np.ndarray:
     if regiao_id in ("NE", "CO"):
         fator = fator * (1 + 0.30 * efeito(cal.data, "cds_regionais", 90))
     return fator
+
+
+def _perfil_absenteismo(cal: pd.DataFrame) -> np.ndarray:
+    """Padrões sistemáticos de ausência: segunda-feira, sexta, inverno e ressaca pós-pico."""
+    dia, mes = cal.dia_semana.to_numpy(), cal.mes.to_numpy()
+    pos_pico = (cal.mult_evento.shift(1, fill_value=1) > 1.5) & (cal.mult_evento <= 1.5)
+    pos_pico = pos_pico.rolling(3, min_periods=1).max().to_numpy()   # 3 dias após o fim do pico
+    return (0.015 * (dia == 0) + 0.004 * (dia == 4) + 0.006 * np.isin(mes, [6, 7])
+            + 0.004 * (mes == 2) + 0.012 * pos_pico)
 
 
 def _reforco_pico(cal: pd.DataFrame, cobertura: float) -> np.ndarray:
@@ -151,7 +161,7 @@ def _cds(cal, demanda, unidades, rng):
             # Plano de pico: temporários cobrem parte do aumento; unidades novas cobrem menos.
             cobertura = np.where(dias_op > 180, 0.85, 0.60)
             reforco = 1 + (cal.mult_evento.to_numpy() - 1) * cobertura
-            absent = np.clip(rng.normal(0.045, 0.008, len(cal)) + 0.015 * (cal.dia_semana.to_numpy() == 0)
+            absent = np.clip(rng.normal(0.045, 0.008, len(cal)) + _perfil_absenteismo(cal)
                              + 0.01 * (rid in ("NE", "N")), 0.01, 0.15)
             wms = efeito(cal.data, "wms_scanner") * (not e_3pl)
             cap_efetiva = (cd.capacidade_dia * _fator_capacidade(cal, rid) * aprend * reforco
@@ -173,6 +183,8 @@ def _cds(cal, demanda, unidades, rng):
             custo = np.where(e_3pl, pedidos * 7.4, hh * 38 + horas_extra * 19)
             d2s = np.clip(4.5 + 14 * sobrecarga + 7 * (1 - aprend) + 1.2 * e_3pl - 2.0 * wms
                           + rng.gamma(2, 0.6, len(cal)), 2, 72)
+            if cd.unidade_id == "CD-AM1":   # resultado do projeto DMAIC (ver kpikit/dmaic.py)
+                d2s = d2s * (1 - 0.45 * efeito(cal.data, "dmaic_am1", 30))
             linhas.append(pd.DataFrame({
                 "data": cal.data, "unidade_id": cd.unidade_id, "pedidos": pedidos * ativo,
                 "pedidos_expedidos_cutoff": np.round(pedidos * cutoff * ativo).astype(int),
@@ -285,25 +297,77 @@ def _last_mile(cal, linehaul, hubs, unidades, rng):
     return pd.concat(linhas, ignore_index=True)
 
 
+# Fatores de risco de saída em 90 dias (log-odds). Premissas de camada D, calibradas para ~33% antes do buddy.
+RISCO_SAIDA_90D = {"intercepto": -1.15, "turno_noite": 0.55, "distancia_10km": 0.45, "canal_agencia": 0.40,
+                   "canal_indicacao": -0.55, "unidade_3pl": 0.35, "admitido_em_pico": 0.30, "com_buddy": -0.95}
+
+
+def _colaboradores(m: pd.DataFrame, unidades: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
+    """Uma linha por admissão, com atributos de risco e data de desligamento (NaT = ainda ativo)."""
+    adm = m.loc[m.index.repeat(m.admissoes), ["mes", "unidade_id", "modelo"]].reset_index(drop=True)
+    n = len(adm)
+    dias_no_mes = adm.mes.dt.days_in_month.to_numpy()
+    adm["data_admissao"] = adm.mes + pd.to_timedelta((rng.random(n) * dias_no_mes).astype(int), unit="D")
+    adm["turno"] = rng.choice(["manha", "tarde", "noite"], n, p=[0.40, 0.30, 0.30])
+    adm["canal_recrutamento"] = rng.choice(["anuncio", "agencia", "indicacao"], n, p=[0.40, 0.35, 0.25])
+    adm["distancia_km"] = np.round(np.clip(rng.lognormal(np.log(9), 0.55, n), 1, 60), 1)
+    adm["admitido_em_pico"] = adm.data_admissao.dt.month.isin([10, 11]).to_numpy()
+    buddy_disp = efeito(adm.data_admissao, "onboarding_buddy", 120) * np.where(adm.modelo == "3PL", 0.3, 0.9)
+    adm["com_buddy"] = rng.random(n) < buddy_disp
+    b = RISCO_SAIDA_90D
+    logit = (b["intercepto"] + b["turno_noite"] * (adm.turno == "noite") + b["distancia_10km"] * (adm.distancia_km - 9) / 10
+             + b["canal_agencia"] * (adm.canal_recrutamento == "agencia")
+             + b["canal_indicacao"] * (adm.canal_recrutamento == "indicacao")
+             + b["unidade_3pl"] * (adm.modelo == "3PL") + b["admitido_em_pico"] * adm.admitido_em_pico
+             + b["com_buddy"] * adm.com_buddy)
+    sai_cedo = rng.random(n) < 1 / (1 + np.exp(-logit.to_numpy()))
+    # Saídas precoces concentram-se nas primeiras semanas; depois, risco mensal baixo e constante.
+    # Exponencial truncada em 89 dias (inversa da CDF), sem acumular massa no limite.
+    escala = 30.0
+    dias_cedo = np.ceil(-escala * np.log(1 - rng.random(n) * (1 - np.exp(-89 / escala))))
+    dias_tarde = 90 + np.ceil(rng.exponential(900, n))
+    dias = np.where(sai_cedo, dias_cedo, dias_tarde)
+    saida = adm.data_admissao + pd.to_timedelta(dias, unit="D")
+    adm["data_desligamento"] = saida.where(saida <= pd.Timestamp(cfg.FIM))
+    adm["motivo"] = np.where(adm.data_desligamento.isna(), "",
+                             rng.choice(["voluntario", "involuntario"], n, p=[0.7, 0.3]))
+    adm = adm.merge(unidades[["unidade_id", "regiao_id"]], on="unidade_id")
+    adm.insert(0, "colaborador_id", [f"C{i:06d}" for i in range(1, n + 1)])
+    return adm.drop(columns="mes")
+
+
 def _pessoas(cds, unidades, rng):
-    base = cds.merge(unidades[["unidade_id", "modelo"]], on="unidade_id")
+    base = cds.merge(unidades[["unidade_id", "modelo", "data_inicio"]], on="unidade_id")
     base["mes"] = base.data.dt.to_period("M").dt.to_timestamp()
-    m = base.groupby(["mes", "unidade_id", "modelo"]).agg(
+    m = base.groupby(["mes", "unidade_id", "modelo", "data_inicio"]).agg(
         hh=("horas_homem", "sum"), absent=("absenteismo", "mean")).reset_index()
     m = m[m.hh > 0].copy()
     m["headcount"] = np.round(m.hh / (8 * 25 * (1 - m.absent))).astype(int)
-    taxa_turn = np.where(m.modelo == "3PL", 0.075, 0.045) * rng.normal(1, 0.15, len(m))
-    m["desligamentos"] = np.round(m.headcount * taxa_turn).astype(int)
-    m["admissoes"] = np.round(m.desligamentos + m.groupby("unidade_id").headcount.diff().fillna(m.headcount)
-                              .clip(lower=0)).astype(int)
-    buddy = efeito(m.mes, "onboarding_buddy", 120)
-    m["desligamentos_menos_90d"] = np.round(
-        m.admissoes * np.clip(rng.normal(0.33 - 0.10 * buddy, 0.05, len(m)), 0.05, 0.7)).astype(int)
+    # Reposição dos veteranos (quadro anterior a 2025) + crescimento do quadro.
+    saidas_veteranos = np.round(m.headcount * np.where(m.modelo == "3PL", 0.045, 0.025)
+                                * rng.normal(1, 0.15, len(m))).astype(int)
+    unidade_nova = m.data_inicio > pd.Timestamp(cfg.INICIO)
+    crescimento = m.groupby("unidade_id").headcount.diff()
+    crescimento = crescimento.fillna(m.headcount.where(unidade_nova, 0)).clip(lower=0)
+    m["admissoes"] = np.round(saidas_veteranos + crescimento * 1.15).astype(int)  # +15%: reposição dos novatos
+
+    colab = _colaboradores(m, unidades, rng)
+    colab["mes_admissao"] = colab.data_admissao.dt.to_period("M").dt.to_timestamp()
+    colab["mes_saida"] = colab.data_desligamento.dt.to_period("M").dt.to_timestamp()
+    tempo = (colab.data_desligamento - colab.data_admissao).dt.days
+    precoce = colab[tempo < 90].groupby(["mes_admissao", "unidade_id"]).size()
+    saidas = colab.dropna(subset=["mes_saida"]).groupby(["mes_saida", "unidade_id"]).size()
+    chave = pd.MultiIndex.from_frame(m[["mes", "unidade_id"]])
+    m["desligamentos"] = saidas_veteranos + saidas.reindex(chave, fill_value=0).to_numpy()
+    m["desligamentos_menos_90d"] = precoce.reindex(chave, fill_value=0).to_numpy()
+    # Coorte madura: todos os admitidos do mês já completaram 90 dias no fim dos dados (evita viés de censura).
+    m["coorte_madura"] = (m.mes + pd.offsets.MonthEnd(0) + pd.Timedelta(days=90)) <= pd.Timestamp(cfg.FIM)
     m["horas_trabalhadas"] = m.hh.round()
     m["acidentes"] = rng.poisson(m.hh * 9e-6)
     m["dias_perdidos"] = rng.poisson(m.acidentes * 12)
     m["enps"] = np.clip(rng.normal(np.where(m.modelo == "3PL", 5, 18), 8), -100, 100).round()
-    return m.drop(columns=["hh", "absent"])
+    pessoas = m.drop(columns=["hh", "absent", "data_inicio"])
+    return pessoas, colab.drop(columns=["mes_admissao", "mes_saida"])
 
 
 def gerar(semente: int = cfg.SEMENTE) -> dict[str, pd.DataFrame]:
@@ -315,11 +379,12 @@ def gerar(semente: int = cfg.SEMENTE) -> dict[str, pd.DataFrame]:
     cds = _cds(cal, demanda, unidades, rng)
     linehaul, hubs = _linehaul_hubs(cal, cds, unidades, rng)
     lm = _last_mile(cal, linehaul, hubs, unidades, rng)
-    pessoas = _pessoas(cds, unidades, rng)
+    pessoas, colaboradores = _pessoas(cds, unidades, rng)
     return {
         "dim_calendario": cal, "dim_regiao": _dim_regiao(), "dim_unidade": unidades,
         "fato_demanda": demanda, "fato_midia": midia, "fato_cd": cds,
         "fato_linehaul": linehaul, "fato_hub": hubs, "fato_last_mile": lm, "fato_pessoas": pessoas,
+        "fato_colaboradores": colaboradores, "fato_recebimentos_am1": gerar_recebimentos(),
     }
 
 
@@ -336,7 +401,7 @@ def carregar(pasta: Path = PASTA_DADOS) -> dict[str, pd.DataFrame]:
     dados = {}
     for arq in sorted(pasta.glob("*.csv")):
         df = pd.read_csv(arq)
-        for col in ("data", "mes", "data_inicio", "data_entrada"):
+        for col in ("data", "mes", "data_inicio", "data_entrada", "data_admissao", "data_desligamento", "chegada"):
             if col in df:
                 df[col] = pd.to_datetime(df[col])
         dados[arq.stem] = df
