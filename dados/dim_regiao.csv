@@ -1,0 +1,6 @@
+regiao_id,regiao,peso_demanda,data_entrada,operacao
+SE,Sudeste,0.46,2025-01-01,madura
+S,Sul,0.16,2025-01-01,madura
+CO,Centro-Oeste,0.09,2025-06-01,expansao
+NE,Nordeste,0.22,2025-04-01,expansao
+N,Norte,0.07,2025-08-01,expansao

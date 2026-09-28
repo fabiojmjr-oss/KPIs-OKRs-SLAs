@@ -1,0 +1,56 @@
+{
+  "empresa": "Vértice Commerce & Logística (fictícia)",
+  "ciclo": "2026",
+  "periodo_linha_base": ["2025-07-01", "2025-12-31"],
+  "periodo_atual": ["2026-07-01", "2026-09-30"],
+  "objetivos": [
+    {
+      "id": "O1",
+      "pilar": "Referência em confiabilidade para o cliente",
+      "objetivo": "Ser a entrega em que o cliente confia sem acompanhar o rastreio",
+      "dono": "Diretoria de Operações",
+      "krs": [
+        {"id": "KR1.1", "kpi_id": "LM-001", "descricao": "OTD vs. promessa", "meta": 0.96, "tipo": "committed"},
+        {"id": "KR1.2", "kpi_id": "LM-002", "descricao": "Entrega na 1ª tentativa (FADR)", "meta": 0.93, "tipo": "committed"},
+        {"id": "KR1.3", "kpi_id": "LM-007", "descricao": "Contatos no SAC por 100 pedidos", "meta": 1.5, "tipo": "aspirational", "polaridade": "menor"}
+      ],
+      "contrapeso": {"kpi_id": "LM-008", "limite": 0.01, "polaridade": "menor", "descricao": "Tentativa falsa ≤ 1%"}
+    },
+    {
+      "id": "O2",
+      "pilar": "Expandir a operação para nível nacional",
+      "objetivo": "Levar a promessa do Sudeste para o Brasil inteiro",
+      "dono": "Diretoria de Rede e Expansão",
+      "krs": [
+        {"id": "KR2.1", "kpi_id": "LM-011", "descricao": "Pedidos entregues em até 48h (Brasil)", "meta": 0.80, "tipo": "aspirational"},
+        {"id": "KR2.2", "kpi_id": "LM-011", "descricao": "Entregues em até 48h no Nordeste", "meta": 0.65, "tipo": "committed", "filtro": {"regiao_id": "NE"}},
+        {"id": "KR2.3", "kpi_id": "MM-001", "descricao": "On-time departure do line-haul", "meta": 0.99, "tipo": "committed"}
+      ],
+      "contrapeso": {"kpi_id": "MM-004", "limite": 3.30, "polaridade": "menor", "descricao": "Custo por kg transferido ≤ R$ 3,30"}
+    },
+    {
+      "id": "O3",
+      "pilar": "Atualizar a operação com tecnologia de mercado",
+      "objetivo": "CDs com padrão de acurácia e velocidade de classe mundial",
+      "dono": "Diretoria de Supply Chain",
+      "krs": [
+        {"id": "KR3.1", "kpi_id": "SC-007", "descricao": "Acurácia de picking (WERC best-in-class 99,68%)", "meta": 0.9968, "tipo": "committed"},
+        {"id": "KR3.2", "kpi_id": "SC-006", "descricao": "Dock-to-stock P90 (WERC < 3,5 h)", "meta": 4.0, "tipo": "aspirational", "polaridade": "menor"},
+        {"id": "KR3.3", "kpi_id": "SC-009", "descricao": "Expedição no cut-off", "meta": 0.99, "tipo": "committed"}
+      ],
+      "contrapeso": {"kpi_id": "SC-008", "limite": 12.0, "polaridade": "maior", "descricao": "Produtividade ≥ 12 linhas/HH"}
+    },
+    {
+      "id": "O4",
+      "pilar": "Aumentar receita com crescimento rentável",
+      "objetivo": "Crescer com lucro e com gente que fica",
+      "dono": "Diretoria Comercial + RH",
+      "krs": [
+        {"id": "KR4.1", "kpi_id": "MK-002", "descricao": "POAS (lucro bruto atribuído / mídia)", "meta": 1.80, "tipo": "committed"},
+        {"id": "KR4.2", "kpi_id": "LM-003", "descricao": "Custo por entrega bem-sucedida", "meta": 12.5, "tipo": "committed", "polaridade": "menor"},
+        {"id": "KR4.3", "kpi_id": "PE-003", "descricao": "Turnover precoce (< 90 dias) · última coorte madura (2T26)", "meta": 0.20, "tipo": "aspirational", "polaridade": "menor", "periodo_atual": ["2026-04-01", "2026-06-30"]}
+      ],
+      "contrapeso": {"kpi_id": "PE-008", "limite": 12.0, "polaridade": "menor", "descricao": "Taxa de frequência de acidentes ≤ 12"}
+    }
+  ]
+}
