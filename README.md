@@ -24,6 +24,7 @@ O repositório tem duas camadas:
 | Quantas pessoas escalar? | Notebook de pessoas §3 | Escala 6x1 otimizada: **−14% de quadro** vs. dimensionar pelo pior dia; o custo de cada política de folga no domingo, calculado |
 | Esperar encher ou sair no horário? | [Notebook de middle mile](notebooks/middle_mile_consolidacao_rotas.ipynb) · app *Middle mile* | Regra híbrida (encher até 80% **ou** trava de meia janela): 100% no prazo com custo/m³ ~12% menor que o horário fixo de 4 h; "esperar encher" sem trava perde 3–6% do volume |
 | Como roteirizar o interior? | Notebook de middle mile §3 | Milk run + veículo certo por rota: **−44% de custo/dia** contra "um caminhão por cidade". A rota mais barata dura 30 h e quebra o D+1: a extensão da rota é decisão de **serviço** |
+| Vale abrir um transbordo? Onde? | Notebook de middle mile §4 · app *Middle mile* | **Transbordo só se paga longe do hub:** satélite em Patos −11,5% de custo e metade dos pernoites; Caruaru/Campina Grande encarecem de 8% a 15%. Uma onda antecipada de 3 h leva o prazo a 100% sem custo. A decisão só vira acima de ~R$ 8,2 mil/dia de custo fixo |
 | Como fechar um gap de capability? | [Notebook DMAIC](notebooks/dmaic_dock_to_stock_am1.ipynb) · [A3](caso-integrado/dmaic-dock-to-stock-am1.md) · app *DMAIC* | Pareto da média ≠ Pareto da cauda. P90 do dock-to-stock no CD-AM1: 9,6 h → 4,9 h; Ppk (percentis) 0,44 → 1,18 |
 
 ![Otimização de capacidade](docs/img/app-capacidade.png)

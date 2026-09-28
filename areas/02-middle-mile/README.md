@@ -66,7 +66,7 @@ North Star: % volume que chega na base de last mile dentro da janela planejada
 | Disponibilidade de frota | Transportadora → Embarcador | Veículos disponibilizados / solicitados com D-1 | 98% |
 
 ## Ferramentas
-[`kpikit/middle_mile.py`](../../kpikit/middle_mile.py): consolidação 2D (peso × m³, heurística FFD e ótimo por MILP), mix de frota, simulação da política de despacho (esperar encher × sair no horário) e roteirização milk run (Clarke-Wright + 2-opt) com dimensionamento de veículo por rota e custo de jornada. Explicado passo a passo em [`notebooks/middle_mile_consolidacao_rotas.ipynb`](../../notebooks/middle_mile_consolidacao_rotas.ipynb) e interativo na aba *Middle mile* do app.
+[`kpikit/middle_mile.py`](../../kpikit/middle_mile.py): consolidação 2D (peso × m³, heurística FFD e ótimo por MILP), mix de frota, simulação da política de despacho (esperar encher × sair no horário) e roteirização milk run (Clarke-Wright + 2-opt) com dimensionamento de veículo por rota e custo de jornada, e **desenho de rede com satélites de transbordo** (enumeração de configurações, custo × janela de entrega, onda antecipada e ponto de virada do custo fixo). Explicado passo a passo em [`notebooks/middle_mile_consolidacao_rotas.ipynb`](../../notebooks/middle_mile_consolidacao_rotas.ipynb) e interativo na aba *Middle mile* do app.
 
 | ID | KPI | Fórmula | Pol. | Nota |
 |---|---|---|---|---|

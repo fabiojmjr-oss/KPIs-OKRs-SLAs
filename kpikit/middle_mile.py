@@ -9,7 +9,7 @@ Especificações de veículos, custos e coordenadas são premissas de camada D (
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 import pandas as pd
@@ -308,6 +308,17 @@ def dois_opt(rota: list[int], D: np.ndarray) -> list[int]:
     return melhor
 
 
+def chegadas(rota: list[int], D: np.ndarray, velocidade_kmh: float = 55, parada_h: float = 0.67) -> list[float]:
+    """Hora de chegada (desde a saída da origem) em cada parada da rota, na ordem visitada."""
+    t, anterior, out = 0.0, 0, []
+    for c in rota:
+        t += D[anterior, c] / velocidade_kmh
+        out.append(t)
+        t += parada_h
+        anterior = c
+    return out
+
+
 def avaliar_rotas(rotas: list[list[int]], kg: np.ndarray, m3: np.ndarray, D: np.ndarray, veiculo: Veiculo,
                   nomes: list[str] | None = None, frota: dict | None = None,
                   velocidade_kmh: float = 55, parada_h: float = 0.67) -> pd.DataFrame:
@@ -331,7 +342,8 @@ def avaliar_rotas(rotas: list[list[int]], kg: np.ndarray, m3: np.ndarray, D: np.
                        "sequencia": " → ".join(nomes[i] for i in r) if nomes else str(r),
                        "km": km, "kg": carga_kg, "m3": carga_m3,
                        "ocupacao": max(carga_kg / v.peso_kg, carga_m3 / v.volume_m3),
-                       "horas": horas, "pernoites": pernoites,
+                       "horas": horas, "horas_ate_ultima": chegadas(r, D, velocidade_kmh, parada_h)[-1],
+                       "pernoites": pernoites,
                        "custo": v.custo_fixo_dia * (1 + pernoites) + v.custo_km * km + CUSTO_PERNOITE * pernoites})
     return pd.DataFrame(linhas)
 
@@ -352,3 +364,126 @@ def comparar_cenarios(cidades: pd.DataFrame = CIDADES_NE, veiculo: Veiculo = FRO
                              "ocupacao_media": v.ocupacao.mean(), "maior_rota_h": v.horas.max(),
                              "pernoites": v.pernoites.sum(),
                              "custo_por_kg": v.custo.sum() / kg.sum()} for k, v in cenarios.items()}).T
+
+
+# ---------------------------------------------------------------- 4. Rede com transbordo (hub-and-spoke)
+@dataclass(frozen=True)
+class ParametrosRede:
+    """Premissas (camada D) da rede hub → satélites de transbordo → cidades."""
+    custo_fixo_satelite_dia: float = 2_500.0   # aluguel, equipe mínima, equipamentos
+    custo_transbordo_m3: float = 6.0            # manuseio do cross-dock
+    tempo_transbordo_h: float = 2.0             # descarga, triagem e carregamento
+    janela_entrega_h: float = 14.0              # saída do hub (ex.: 22 h) → entrega até 12 h do dia seguinte
+    antecipacao_linehaul_h: float = 0.0         # "onda antecipada": carreta do satélite sai X h antes da onda geral
+    km_max_hub: float = 900.0
+    km_max_satelite: float = 600.0
+    velocidade_kmh: float = 55.0
+    parada_h: float = 0.67
+
+
+CANDIDATOS_TRANSBORDO = ["Campina Grande", "Caruaru", "Arcoverde", "Patos"]
+
+
+def _orientar(rota: list[int], D: np.ndarray, kg: np.ndarray, p: "ParametrosRede") -> list[int]:
+    """O sentido da rota não muda o km, mas muda quem recebe primeiro: escolhe o sentido que
+    entrega mais kg dentro da janela (desempate: menor tempo médio ponderado de chegada)."""
+    def nota(r):
+        t = np.array(chegadas(r, D, p.velocidade_kmh, p.parada_h))
+        return (-(kg[r] * (t <= p.janela_entrega_h)).sum(), (kg[r] * t).sum())
+    return min((rota, rota[::-1]), key=nota)
+
+
+def _cluster(cidades: pd.DataFrame, origem: int, membros: list[int], densidade: float, veiculo: Veiculo,
+             km_max: float, p: ParametrosRede) -> tuple[pd.DataFrame, dict[str, float]]:
+    """Roteiriza os membros a partir da origem. Retorna rotas avaliadas e a hora de chegada por cidade."""
+    sub = cidades.iloc[[origem] + membros].reset_index(drop=True)
+    if origem in membros:            # a cidade-satélite é atendida localmente (distância zero)
+        sub = cidades.iloc[[origem] + membros].reset_index(drop=True)
+    D = matriz_distancias(sub)
+    kg = sub.demanda_kg.to_numpy(float)
+    kg[0] = 0.0
+    m3 = kg / densidade
+    rotas = [_orientar(dois_opt(r, D), D, kg, p) for r in clarke_wright(kg, m3, D, veiculo, km_max)]
+    det = avaliar_rotas(rotas, kg, m3, D, veiculo, sub.cidade.tolist(), frota=FROTA,
+                        velocidade_kmh=p.velocidade_kmh, parada_h=p.parada_h)
+    chegada = {}
+    for r in rotas:
+        for c, t in zip(r, chegadas(r, D, p.velocidade_kmh, p.parada_h)):
+            chegada[sub.cidade[c]] = min(t, chegada.get(sub.cidade[c], np.inf))
+    return det, chegada
+
+
+def avaliar_rede(satelites: list[str], cidades: pd.DataFrame = CIDADES_NE, p: ParametrosRede = ParametrosRede(),
+                 densidade: float = DENSIDADE_ECOMMERCE_KG_M3) -> dict:
+    """Custo diário e nível de serviço de uma configuração de rede.
+
+    Cada cidade é atendida pela instalação mais próxima (hub ou satélite aberto). Satélites recebem
+    carretas do hub (line-haul consolidado) e distribuem com veículos dimensionados por rota.
+    """
+    nomes = cidades.cidade.tolist()
+    D = matriz_distancias(cidades)
+    inst = [0] + [nomes.index(s) for s in satelites]
+    clientes = [i for i in range(1, len(cidades))]
+    atrib = {i: min(inst, key=lambda f: D[f, i]) for i in clientes}
+    for s in inst[1:]:
+        atrib[s] = s                              # a própria cidade-satélite é servida pelo satélite
+    rotas, linhas_lh, chegada = [], [], {}
+    for f in inst:
+        membros = [i for i in clientes if atrib[i] == f]
+        if not membros:
+            continue
+        veic = FROTA["Truck"] if f == 0 else FROTA["Toco"]
+        km_max = p.km_max_hub if f == 0 else p.km_max_satelite
+        membros_rota = [m for m in membros if m != f]
+        atraso = 0.0
+        if f != 0:
+            atraso = D[0, f] / p.velocidade_kmh + p.tempo_transbordo_h - p.antecipacao_linehaul_h
+        # No satélite, a janela que sobra para as rotas é a janela total menos o atraso do line-haul.
+        p_local = replace(p, janela_entrega_h=p.janela_entrega_h - atraso)
+        det, cheg = (_cluster(cidades, f, membros_rota, densidade, veic, km_max, p_local)
+                     if membros_rota else (pd.DataFrame(), {}))
+        if f != 0:
+            kg_cl = cidades.demanda_kg.iloc[membros].sum()
+            m3_cl = kg_cl / densidade
+            carretas = int(np.ceil(max(kg_cl / FROTA["Carreta"].peso_kg, m3_cl / FROTA["Carreta"].volume_m3)))
+            km_lh = 2 * D[0, f]
+            linhas_lh.append({"satelite": nomes[f], "carretas": carretas, "km": carretas * km_lh, "m3": m3_cl,
+                              "ocupacao": m3_cl / (carretas * FROTA["Carreta"].volume_m3),
+                              "custo_linehaul": carretas * (FROTA["Carreta"].custo_fixo_dia / 2
+                                                            + FROTA["Carreta"].custo_km * km_lh),
+                              "custo_transbordo": m3_cl * p.custo_transbordo_m3,
+                              "custo_fixo": p.custo_fixo_satelite_dia})
+            chegada[nomes[f]] = atraso                       # entrega local no satélite
+        if not det.empty:
+            det = det.assign(origem=nomes[f])
+            rotas.append(det)
+        for c, t in cheg.items():
+            chegada[c] = t + atraso
+    rotas = pd.concat(rotas, ignore_index=True)
+    lh = pd.DataFrame(linhas_lh)
+    dem = cidades.set_index("cidade").demanda_kg.drop(nomes[0])
+    cheg = pd.Series(chegada).reindex(dem.index)
+    no_prazo = float(dem[cheg <= p.janela_entrega_h].sum() / dem.sum())
+    custo_rotas = float(rotas.custo.sum())
+    custo_lh = float(lh[["custo_linehaul", "custo_transbordo", "custo_fixo"]].sum().sum()) if not lh.empty else 0.0
+    return {
+        "satelites": " + ".join(satelites) if satelites else "(sem transbordo)",
+        "custo_dia": custo_rotas + custo_lh, "custo_rotas": custo_rotas, "custo_transbordo_total": custo_lh,
+        "km": float(rotas.km.sum() + (lh.km.sum() if not lh.empty else 0)),
+        "rotas": len(rotas), "pernoites": int(rotas.pernoites.sum()),
+        "pct_demanda_no_prazo": no_prazo, "ultima_entrega_h": float(cheg.max()),
+        "cidades_fora_do_prazo": ", ".join(cheg[cheg > p.janela_entrega_h].sort_values(ascending=False).index),
+        "detalhe_rotas": rotas, "detalhe_linehaul": lh, "chegada_h": cheg,
+    }
+
+
+def comparar_redes(candidatos: list[str] = CANDIDATOS_TRANSBORDO, cidades: pd.DataFrame = CIDADES_NE,
+                   p: ParametrosRede = ParametrosRede(), max_satelites: int = 2) -> pd.DataFrame:
+    """Avalia todas as combinações de até `max_satelites` satélites (enumeração completa: poucos candidatos)."""
+    from itertools import combinations
+    linhas = []
+    for k in range(max_satelites + 1):
+        for combo in combinations(candidatos, k):
+            r = avaliar_rede(list(combo), cidades, p)
+            linhas.append({c: v for c, v in r.items() if not c.startswith(("detalhe", "chegada"))})
+    return pd.DataFrame(linhas).sort_values("custo_dia").reset_index(drop=True)

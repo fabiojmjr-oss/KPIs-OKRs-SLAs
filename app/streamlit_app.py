@@ -328,6 +328,27 @@ with abas[7]:
                  hide_index=True, use_container_width=True)
     st.caption("Coordenadas aproximadas, distância = haversine × 1,25. Especificações e custos de veículos são premissas. "
                "⚠️ Regras de jornada (Lei 13.103/2015 e convenções) a validar com o jurídico.")
+    st.divider()
+    st.markdown("**Rede com transbordo · vale abrir um satélite? Onde?**")
+    c = st.columns(3)
+    sats = c[0].multiselect("Satélites abertos", mm.CANDIDATOS_TRANSBORDO, default=["Patos"])
+    antec = c[1].slider("Onda antecipada da carreta do satélite (h)", 0.0, 4.0, 0.0, 0.5)
+    fixo = c[2].slider("Custo fixo do satélite (R$/dia)", 1_000, 12_000, 2_500, 500)
+    par = mm.ParametrosRede(antecipacao_linehaul_h=antec, custo_fixo_satelite_dia=fixo)
+    atual, rede = mm.avaliar_rede([], p=par), mm.avaliar_rede(sats, p=par)
+    k = st.columns(4)
+    k[0].metric("Custo/dia · sem transbordo", f"R$ {atual['custo_dia']:,.0f}")
+    k[1].metric("Custo/dia · rede escolhida", f"R$ {rede['custo_dia']:,.0f}",
+                delta=f"{rede['custo_dia'] / atual['custo_dia'] - 1:+.1%}", delta_color="inverse")
+    k[2].metric("Demanda na janela de 14 h", f"{rede['pct_demanda_no_prazo']:.1%}",
+                delta=f"{(rede['pct_demanda_no_prazo'] - atual['pct_demanda_no_prazo']) * 100:+.1f} p.p.")
+    k[3].metric("Pernoites", rede["pernoites"], delta=rede["pernoites"] - atual["pernoites"], delta_color="inverse")
+    if rede["cidades_fora_do_prazo"]:
+        st.caption(f"Fora da janela: {rede['cidades_fora_do_prazo']}")
+    with st.expander("Todas as configurações (até 2 satélites)"):
+        st.dataframe(mm.comparar_redes(p=par)[["satelites", "custo_dia", "pct_demanda_no_prazo", "pernoites",
+                                                "ultima_entrega_h", "cidades_fora_do_prazo"]].round(3),
+                     hide_index=True, use_container_width=True)
 
 # ---------------------------------------------------------------- Marketing
 with abas[8]:

@@ -220,3 +220,29 @@ def test_dois_opt_desfaz_cruzamento():
     D = mm.matriz_distancias(pts)
     cruzada = [1, 3, 2, 4]
     assert mm.comprimento(mm.dois_opt(cruzada, D), D) < mm.comprimento(cruzada, D)
+
+
+def test_rede_sem_transbordo_igual_ao_milk_run_da_secao_3():
+    r = mm.avaliar_rede([])
+    ref = mm.comparar_cenarios(km_max=900).loc["milk run + right-sizing", "custo"]
+    assert r["custo_dia"] == pytest.approx(ref)
+
+
+def test_rede_atende_todas_as_cidades():
+    r = mm.avaliar_rede(["Patos", "Caruaru"])
+    assert r["chegada_h"].notna().all()
+    assert len(r["chegada_h"]) == len(mm.CIDADES_NE) - 1
+
+
+def test_onda_antecipada_nunca_piora_o_prazo():
+    base = mm.avaliar_rede(["Patos"])
+    antecipada = mm.avaliar_rede(["Patos"], p=mm.ParametrosRede(antecipacao_linehaul_h=3))
+    assert antecipada["pct_demanda_no_prazo"] >= base["pct_demanda_no_prazo"]
+    assert antecipada["custo_dia"] == pytest.approx(base["custo_dia"])
+
+
+def test_orientar_nao_muda_km():
+    D = mm.matriz_distancias(mm.CIDADES_NE)
+    kg = mm.CIDADES_NE.demanda_kg.to_numpy(float)
+    rota = [1, 2, 13, 12]
+    assert mm.comprimento(mm._orientar(rota, D, kg, mm.ParametrosRede()), D) == pytest.approx(mm.comprimento(rota, D))

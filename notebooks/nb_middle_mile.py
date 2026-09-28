@@ -11,6 +11,7 @@ No caso Vértice, o objetivo O2 (expansão nacional) atingiu a pontualidade do l
 | 1 | Como encher o veículo? | Bin packing 2D (heurística FFD × ótimo por programação inteira) · mix de frota | MM-003 |
 | 2 | Esperar encher ou sair no horário? | Simulação de eventos discretos (hora a hora, 60 dias) | MM-002, MM-012 |
 | 3 | Em que ordem visitar as cidades? | Clarke-Wright + 2-opt · dimensionamento do veículo por rota | MM-004, MM-011, MM-013 |
+| 4 | Vale abrir um ponto de transbordo? Onde? | Localização de instalações por enumeração + roteirização por satélite | MM-004, MM-012, LM-011 |
 
 > Caixas **🧠 Por dentro** explicam técnica e código; **🎯 Leitura executiva** traduz em decisão. Especificações de veículos, custos e demanda são premissas (camada D); coordenadas das cidades são aproximadas."""),
     code("""import sys; sys.path.insert(0, '..')
@@ -97,8 +98,49 @@ detalhe[['veiculo', 'sequencia', 'km', 'kg', 'm3', 'ocupacao', 'horas', 'pernoit
 - **Direto × milk run × veículo certo.** Com extensão máxima de 900 km, o milk run corta ~30% do custo diário em relação a "um caminhão por cidade", e **escolher o veículo certo para cada rota** corta mais ~20%. As duas alavancas se somam, e a segunda não exige nenhum algoritmo, só disciplina de planejamento.
 - **A rota mais barata não é a melhor.** Sem limite de extensão, o custo cai ainda mais, mas a maior rota passa de **30 h**: a última cidade recebe no **segundo dia**, e a promessa D+1 do O2 quebra. **A extensão máxima da rota é uma decisão de serviço**, que tem que vir da promessa ao cliente, não do planejador de transporte.
 - **Jornada é restrição, não detalhe.** Rotas acima de ~11 h exigem pernoite ou segundo motorista (o modelo cobra isso). ⚠️ As regras de jornada (Lei 13.103/2015 e convenções) devem ser validadas com o jurídico.
-- **Cidades do sertão (Sousa, Patos, Mossoró, Serra Talhada)** geram as rotas longas. A alternativa estrutural é um **ponto de transbordo** (por exemplo, em Campina Grande ou Caruaru), com carreta cheia até lá e veículos menores na capilaridade. É o desenho hub-and-spoke em miniatura e o próximo passo natural deste modelo.
+- **Cidades do sertão (Sousa, Patos, Mossoró, Serra Talhada)** geram as rotas longas. A alternativa estrutural é um **ponto de transbordo**: carreta cheia até ele e veículos menores na capilaridade. A seção 4 testa onde isso se paga.
 - **Governança do contrapeso do O2:** custo/kg deve ser acompanhado **por região e com mix constante** (medida DAX `Custo por kg Mix Constante`). O ganho de roteirização aparece como queda real, e não se confunde com o efeito mix.
+"""),
+
+    md("## 4. Rede com transbordo · vale abrir um satélite? Onde?"),
+    md("""🧠 **Por dentro da técnica · localização de instalações.** Um **satélite de transbordo** (cross-dock) recebe carretas cheias do hub e redistribui com veículos menores. Ele troca **km de caminhão meio vazio** por **custo fixo + manuseio + tempo de transbordo**. Para cada combinação de satélites candidatos (até 2 dos 4, isto é, 11 redes), o modelo:
+1. atribui cada cidade à instalação mais próxima (hub ou satélite aberto);
+2. calcula o line-haul hub → satélite em carretas (1 viagem ida e volta = meio dia de veículo);
+3. roteiriza cada satélite com Clarke-Wright + 2-opt e veículo dimensionado por rota;
+4. mede o **serviço**: hora de chegada em cada cidade desde a saída do hub, contra a janela de entrega (14 h).
+
+Com poucos candidatos, a **enumeração completa** é a escolha certa: garante o ótimo dentro das premissas e é auditável. Com dezenas de candidatos, o problema vira um MILP de localização (*capacitated facility location*).
+
+**Detalhe que muda o resultado:** o sentido em que uma rota é percorrida não muda o km, mas muda **quem recebe primeiro**. `_orientar` escolhe o sentido que entrega mais kg dentro da janela."""),
+    code("""redes = mm.comparar_redes()
+redes[['satelites', 'custo_dia', 'custo_transbordo_total', 'km', 'pernoites', 'pct_demanda_no_prazo', 'ultima_entrega_h', 'cidades_fora_do_prazo']]"""),
+    code("""base = redes.set_index('satelites').loc['(sem transbordo)', 'custo_dia']
+fig, ax = plt.subplots(figsize=(9, 4.4))
+cor = ['#c0392b' if s == '(sem transbordo)' else '#2e8b57' if c < base else '#7f8c8d' for s, c in zip(redes.satelites, redes.custo_dia)]
+ax.scatter(redes.custo_dia / 1e3, redes.pct_demanda_no_prazo, s=70, c=cor)
+for _, r in redes.iterrows():
+    ax.annotate(r.satelites, (r.custo_dia / 1e3, r.pct_demanda_no_prazo), fontsize=7, xytext=(4, 3), textcoords='offset points')
+ax.axvline(base / 1e3, color='#c0392b', ls=':', lw=1)
+ax.set_xlabel('custo da rede (R$ mil/dia)'); ax.set_ylabel('demanda entregue na janela de 14 h')
+ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f'{v:.0%}'))
+ax.set_title('Custo × serviço das configurações de rede (verde = mais barata que sem transbordo)', loc='left')"""),
+    md("""🎯 **Transbordo só se paga longe do hub.** O satélite em **Patos**, no sertão, é a única configuração **mais barata** que a rede atual (−11,5%, com pernoites caindo de 8 para 4): a carreta cheia substitui várias viagens longas de caminhão meio vazio. Satélites em **Caruaru** ou **Campina Grande**, a ~150–180 km de Recife, **encarecem** a rede (+8% a +15%): a distância economizada não paga custo fixo, manuseio e a viagem extra da carreta. Eles até melhoram o prazo, mas a um custo que outra alavanca resolve mais barato (a seguir)."""),
+    code("""from dataclasses import replace
+cen = {f'{h} h antes': mm.avaliar_rede(['Patos'], p=mm.ParametrosRede(antecipacao_linehaul_h=h)) for h in (0, 2, 3)}
+pd.DataFrame({k: {'custo_dia': v['custo_dia'], 'pct_no_prazo': v['pct_demanda_no_prazo'], 'ultima_entrega_h': v['ultima_entrega_h'],
+                  'fora_do_prazo': v['cidades_fora_do_prazo'] or '—'} for k, v in cen.items()}).T"""),
+    md("""🎯 **A onda antecipada fecha o gap de serviço sem custo.** Com o satélite em Patos, Arcoverde fica fora da janela. Fazer a carreta do satélite sair **3 h antes** da onda geral do hub (primeira onda de separação dedicada ao satélite) leva o atendimento a **100% no prazo** com o **mesmo custo**. É uma decisão de **sequenciamento de ondas no CD**, não de transporte: o middle mile se resolve dentro do armazém. (Premissa: o CD consegue antecipar a separação desse volume; validar com a capacidade de onda do SC-009.)"""),
+    code("""sens = pd.DataFrame([{'custo_fixo_satelite_dia': fx,
+                      'variacao_vs_rede_atual': mm.avaliar_rede(['Patos'], p=mm.ParametrosRede(custo_fixo_satelite_dia=fx))['custo_dia'] / base - 1}
+                     for fx in (2_500, 5_000, 7_500, 8_000, 8_500, 10_000)])
+sens"""),
+    md("""🎯 **Robustez da decisão.** A premissa de custo fixo do satélite é R$ 2.500/dia, mas **a decisão só se inverte acima de ~R$ 8.200/dia**: há margem de mais de 3× para erro de estimativa. É assim que se apresenta uma recomendação de rede a um comitê: **decisão + ponto de virada**, não só o número do cenário base.
+
+**Recomendação para o comitê (caso Vértice):**
+1. Abrir **satélite de transbordo em Patos (PB)** para o sertão (Sousa, Caicó, Mossoró, Serra Talhada, Arcoverde).
+2. Criar **onda antecipada** no hub para a carreta do satélite (−3 h).
+3. Manter capitais e agreste atendidos direto do hub, com **veículo dimensionado por rota**.
+4. Acompanhar **custo/kg por região com mix constante** (DAX `Custo por kg Mix Constante`) e **MM-013** (rotas acima da jornada) como contrapeso.
 
 ---
 *KPIs: MM-003 (ocupação na restrição ativa), MM-004 (custo/kg), MM-011 (paradas por rota), MM-012 (volume despachado no prazo), MM-013 (rotas acima da jornada). Material de portfólio com premissas declaradas.*"""),
