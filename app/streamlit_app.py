@@ -5,6 +5,7 @@ Executar:  streamlit run app/streamlit_app.py
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -12,6 +13,7 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from kpikit import capacidade, config, dmaic, kpis, okr, pessoas, simulador, spc  # noqa: E402
+from kpikit import middle_mile as mm  # noqa: E402
 
 st.set_page_config(page_title="Vértice · KPIs, OKRs e SLAs", layout="wide")
 
@@ -36,6 +38,11 @@ def absenteismo_previsto():
 
 
 @st.cache_data
+def curva_despacho(volume, veiculo, km, prazo):
+    return mm.curva_despacho(volume, mm.FROTA[veiculo], km, prazo)
+
+
+@st.cache_data
 def modelo_saida():
     X, y = pessoas.matriz_risco_saida(dados()["fato_colaboradores"], config.FIM)
     return pessoas.regressao_logistica(X, y)
@@ -50,7 +57,8 @@ st.title("Vértice · Painel de Desempenho")
 st.caption(f"{config.EMPRESA} · dados sintéticos de {config.INICIO:%d/%m/%Y} a {config.FIM:%d/%m/%Y} · "
            "benchmarks reais em 00-fundamentos/linha-de-base-mercado.md")
 
-abas = st.tabs(["Executivo", "OKRs 2026", "Operação", "CEP", "Capacidade", "Pessoas", "DMAIC", "Marketing"])
+abas = st.tabs(["Executivo", "OKRs 2026", "Operação", "CEP", "Capacidade", "Pessoas", "DMAIC", "Middle mile",
+                "Marketing"])
 
 # ---------------------------------------------------------------- Executivo
 with abas[0]:
@@ -261,8 +269,89 @@ with abas[6]:
     st.caption("Ppk pelo método dos percentis (ISO 22514-2). O Ppk 'normal' superestima a capacidade em tempos com cauda "
                "longa. Análise completa em notebooks/dmaic_dock_to_stock_am1.ipynb.")
 
-# ---------------------------------------------------------------- Marketing
+# ---------------------------------------------------------------- Middle mile
 with abas[7]:
+    st.subheader("Middle mile · despacho e roteirização")
+    st.markdown("**Política de despacho no hub: esperar encher ou sair no horário?**")
+    c = st.columns(4)
+    vol = c[0].slider("Volume da faixa (m³/dia)", 100, 600, 350, 50)
+    veic = c[1].selectbox("Veículo", list(mm.FROTA), index=3)
+    km_lh = c[2].slider("Distância ida e volta (km)", 60, 1200, 240, 20)
+    prazo = c[3].slider("Prazo interno no hub (h)", 4, 16, 8, 1)
+    curva = curva_despacho(vol, veic, km_lh, prazo)
+    rotulos = {"encher": "encher até X% (com trava)", "encher_sem_trava": "encher até X% (sem trava)",
+               "horario": "sair a cada N horas"}
+    fig = px.line(curva.assign(politica=curva.politica.map(rotulos)).sort_values(["politica", "custo_por_m3"]),
+                  x="custo_por_m3", y="pct_volume_no_prazo", color="politica", markers=True, text="parametro",
+                  color_discrete_map={rotulos["encher"]: VERDE, rotulos["encher_sem_trava"]: VERMELHO,
+                                      rotulos["horario"]: AZUL},
+                  labels={"custo_por_m3": "custo por m³ (R$)", "pct_volume_no_prazo": "volume no prazo"})
+    fig.update_traces(textposition="top center", textfont_size=9)
+    fig.update_layout(height=400, yaxis_tickformat=".0%")
+    st.plotly_chart(fig, use_container_width=True)
+    st.caption("Simulação hora a hora de 60 dias. A trava libera o veículo quando o volume mais antigo esperou metade "
+               "do prazo. Sem ela, 'esperar encher' parece barato e perde prazo nas horas de pouco volume.")
+    st.divider()
+    st.markdown("**Milk run a partir do hub de Recife (Clarke-Wright + 2-opt)**")
+    c = st.columns(3)
+    km_max = c[0].slider("Extensão máxima da rota (km)", 400, 1600, 900, 100)
+    base_v = c[1].selectbox("Veículo de planejamento", ["Toco", "Truck", "Carreta"], index=1)
+    dens = c[2].slider("Densidade da carga (kg/m³)", 80, 300, 150, 10)
+    C = mm.CIDADES_NE
+    D = mm.matriz_distancias(C)
+    kg_c = C.demanda_kg.to_numpy(float)
+    m3_c = kg_c / dens
+    rotas = [mm.dois_opt(r, D) for r in mm.clarke_wright(kg_c, m3_c, D, mm.FROTA[base_v], km_max)]
+    det = mm.avaliar_rotas(rotas, kg_c, m3_c, D, mm.FROTA[base_v], C.cidade.tolist(), frota=mm.FROTA)
+    comp = mm.comparar_cenarios(C, mm.FROTA[base_v], km_max, dens)
+    k = st.columns(4)
+    k[0].metric("Custo/dia · direto", f"R$ {comp.loc['direto', 'custo']:,.0f}")
+    k[1].metric("Custo/dia · milk run + veículo certo", f"R$ {comp.loc['milk run + right-sizing', 'custo']:,.0f}",
+                delta=f"{comp.loc['milk run + right-sizing', 'custo'] / comp.loc['direto', 'custo'] - 1:.0%}",
+                delta_color="inverse")
+    k[2].metric("Maior rota", f"{det.horas.max():.1f} h")
+    k[3].metric("Rotas acima da jornada (MM-013)", f"{(det.pernoites > 0).mean():.0%}")
+    # Plano longitude × latitude (sem mapa-base externo: funciona offline e no deploy).
+    fig = go.Figure()
+    for i, r in enumerate(rotas):
+        cam = [0, *r, 0]
+        fig.add_scatter(x=C.lon[cam], y=C.lat[cam], mode="lines", line_width=2,
+                        name=f"R{i + 1} · {det.veiculo.iloc[i]}")
+    fig.add_scatter(x=C.lon, y=C.lat, mode="markers+text", text=C.cidade.str.replace(" (hub)", ""),
+                    textposition="top center", textfont_size=9, showlegend=False,
+                    marker=dict(size=np.sqrt(kg_c + 1) / 6 + 6, color=[VERMELHO] + [AZUL] * (len(C) - 1)))
+    fig.update_yaxes(scaleanchor="x", scaleratio=1, title="latitude")
+    fig.update_xaxes(title="longitude")
+    fig.update_layout(height=620, margin=dict(l=0, r=0, t=10, b=0))
+    st.plotly_chart(fig, use_container_width=True)
+    st.dataframe(det[["veiculo", "sequencia", "km", "kg", "m3", "ocupacao", "horas", "pernoites", "custo"]].round(2),
+                 hide_index=True, use_container_width=True)
+    st.caption("Coordenadas aproximadas, distância = haversine × 1,25. Especificações e custos de veículos são premissas. "
+               "⚠️ Regras de jornada (Lei 13.103/2015 e convenções) a validar com o jurídico.")
+    st.divider()
+    st.markdown("**Rede com transbordo · vale abrir um satélite? Onde?**")
+    c = st.columns(3)
+    sats = c[0].multiselect("Satélites abertos", mm.CANDIDATOS_TRANSBORDO, default=["Patos"])
+    antec = c[1].slider("Onda antecipada da carreta do satélite (h)", 0.0, 4.0, 0.0, 0.5)
+    fixo = c[2].slider("Custo fixo do satélite (R$/dia)", 1_000, 12_000, 2_500, 500)
+    par = mm.ParametrosRede(antecipacao_linehaul_h=antec, custo_fixo_satelite_dia=fixo)
+    atual, rede = mm.avaliar_rede([], p=par), mm.avaliar_rede(sats, p=par)
+    k = st.columns(4)
+    k[0].metric("Custo/dia · sem transbordo", f"R$ {atual['custo_dia']:,.0f}")
+    k[1].metric("Custo/dia · rede escolhida", f"R$ {rede['custo_dia']:,.0f}",
+                delta=f"{rede['custo_dia'] / atual['custo_dia'] - 1:+.1%}", delta_color="inverse")
+    k[2].metric("Demanda na janela de 14 h", f"{rede['pct_demanda_no_prazo']:.1%}",
+                delta=f"{(rede['pct_demanda_no_prazo'] - atual['pct_demanda_no_prazo']) * 100:+.1f} p.p.")
+    k[3].metric("Pernoites", rede["pernoites"], delta=rede["pernoites"] - atual["pernoites"], delta_color="inverse")
+    if rede["cidades_fora_do_prazo"]:
+        st.caption(f"Fora da janela: {rede['cidades_fora_do_prazo']}")
+    with st.expander("Todas as configurações (até 2 satélites)"):
+        st.dataframe(mm.comparar_redes(p=par)[["satelites", "custo_dia", "pct_demanda_no_prazo", "pernoites",
+                                                "ultima_entrega_h", "cidades_fora_do_prazo"]].round(3),
+                     hide_index=True, use_container_width=True)
+
+# ---------------------------------------------------------------- Marketing
+with abas[8]:
     st.subheader("Mídia paga · ROAS de plataforma × POAS × MER")
     m = pd.concat([kpis.calcular(d, "MK-001", freq="MS"), kpis.calcular(d, "MK-002", freq="MS"),
                    kpis.mer(d, freq="MS").rename("MER")], axis=1).reset_index()
