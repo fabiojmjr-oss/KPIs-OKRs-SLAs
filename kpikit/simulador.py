@@ -144,6 +144,10 @@ def _midia(cal: pd.DataFrame, demanda: pd.DataFrame, rng: np.random.Generator) -
     pedidos_dia = demanda.groupby("data").pedidos.sum().reindex(cal.data).to_numpy()
     # Picos recebem mais investimento, mas com retorno marginal decrescente.
     mult_invest = 1 + (cal.mult_evento.to_numpy() - 1) * 1.25
+    # A verba acompanha o porte da operação (média móvel de 28 dias da demanda fora de pico),
+    # com elasticidade < 1: empresas maiores investem mais, mas não na mesma proporção.
+    demanda_base = pd.Series(pedidos_dia / cal.mult_evento.to_numpy()).rolling(28, min_periods=1).mean()
+    mult_invest = mult_invest * (demanda_base / demanda_base.iloc[:28].mean()).to_numpy() ** 0.85
     linhas = []
     for canal, (share, cpm, ctr, conv, inflacao) in cfg.CANAIS_MIDIA.items():
         invest = cfg.INVESTIMENTO_MIDIA_DIA * share * mult_invest * rng.normal(1, 0.05, len(cal))

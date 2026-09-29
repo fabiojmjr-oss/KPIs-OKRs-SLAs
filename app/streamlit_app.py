@@ -14,6 +14,7 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from kpikit import capacidade, config, dmaic, kpis, okr, pessoas, simulador, spc
+from kpikit import marketing as mkt
 from kpikit import middle_mile as mm
 
 st.set_page_config(page_title="Vértice · KPIs, OKRs e SLAs", layout="wide")
@@ -36,6 +37,20 @@ def okrs_pontuados():
 @st.cache_data
 def absenteismo_previsto():
     return pessoas.previsao_absenteismo(dados())
+
+
+@st.cache_data
+def mmm(calibrar: bool):
+    """MMM ajustado (com ou sem calibração pelo teste geo de Meta), comparação de ROAS e realocação."""
+    serie, beta_real = mkt.gerar_serie_mmm()
+    teste = mkt.teste_permutacao(mkt.gerar_teste_geo())
+    modelo = mkt.ajustar_mmm(serie, calibracao={"Meta Ads": teste["iroas"]} if calibrar else None)
+    otimo = mkt.otimizar_orcamento(serie, modelo)
+    ganho_real = (
+        mkt.receita_real_regime(otimo.gasto_otimo, beta_real) / mkt.receita_real_regime(otimo.gasto_atual, beta_real)
+        - 1
+    )
+    return mkt.comparar_roas(serie, modelo), otimo, teste, ganho_real, modelo.mape_teste
 
 
 @st.cache_data
@@ -508,4 +523,53 @@ with abas[8]:
     st.dataframe(
         por_canal.style.format({"MK-001": "{:.2f}x", "MK-002": "{:.2f}x", "MK-004": "R$ {:.2f}", "MK-007": "{:.2%}"}),
         use_container_width=True,
+    )
+    st.divider()
+    st.subheader("Incrementalidade · MMM calibrado por teste geo")
+    calibrar = st.toggle("Calibrar o MMM com o teste geo de Meta (desligamento em 15 de 30 praças por 6 semanas)", True)
+    roas, otimo, teste, ganho_real, mape = mmm(calibrar)
+    k = st.columns(4)
+    k[0].metric(
+        "ROAS incremental de Meta · experimento",
+        f"{teste['iroas']:.2f}x",
+        help=f"IC95% {teste['iroas_ic_inf']:.2f}–{teste['iroas_ic_sup']:.2f} · p={teste['p_valor']:.3f}",
+    )
+    k[1].metric("Erro do MMM vs. verdade (MK-013)", f"{mkt.erro_roas(roas):.0%}")
+    k[2].metric(
+        "Ganho real da realocação", f"{ganho_real:+.1%}", help="Mesmo orçamento, medido pela verdade da simulação"
+    )
+    k[3].metric("MAPE fora da amostra", f"{mape:.1%}")
+    tabela = (
+        roas[["roas_plataforma", "roas_incremental_mmm", "roas_incremental_real"]]
+        .reset_index()
+        .melt(id_vars="canal", var_name="medida", value_name="ROAS")
+    )
+    fig = px.bar(
+        tabela.replace(
+            {"roas_plataforma": "plataforma", "roas_incremental_mmm": "MMM", "roas_incremental_real": "verdade"}
+        ),
+        x="canal",
+        y="ROAS",
+        color="medida",
+        barmode="group",
+        color_discrete_map={"plataforma": CINZA, "MMM": AZUL, "verdade": VERDE},
+    )
+    fig.add_hline(y=mkt.BREAK_EVEN_ROAS, line_dash="dash", line_color=VERMELHO, annotation_text="break-even 1ª compra")
+    fig.update_layout(height=380)
+    st.plotly_chart(fig, use_container_width=True)
+    st.dataframe(
+        otimo[["gasto_atual", "gasto_otimo", "variacao", "roas_marginal_otimo"]].style.format(
+            {
+                "gasto_atual": "R$ {:,.0f}",
+                "gasto_otimo": "R$ {:,.0f}",
+                "variacao": "{:+.0%}",
+                "roas_marginal_otimo": "{:.2f}",
+            }
+        ),
+        use_container_width=True,
+    )
+    st.caption(
+        "Série de 104 semanas simulada com parâmetros verdadeiros conhecidos: é o que permite medir o erro do modelo. "
+        "Realocação limitada a −50%/+100% do gasto atual por canal. Análise completa em "
+        "notebooks/marketing_mmm_incrementalidade.ipynb."
     )

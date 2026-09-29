@@ -254,3 +254,55 @@ def test_orientar_nao_muda_km():
     kg = mm.CIDADES_NE.demanda_kg.to_numpy(float)
     rota = [1, 2, 13, 12]
     assert mm.comprimento(mm._orientar(rota, D, kg, mm.ParametrosRede()), D) == pytest.approx(mm.comprimento(rota, D))
+
+
+# ---------------------------------------------------------------- marketing
+from kpikit import marketing as mkt
+
+
+@pytest.fixture(scope="module")
+def serie_mmm():
+    return mkt.gerar_serie_mmm()
+
+
+def test_adstock_e_hill():
+    x = np.array([100.0, 0, 0])
+    assert mkt.adstock(x, 0.5).tolist() == [100.0, 50.0, 25.0]
+    assert mkt.hill(np.array([10.0]), 10.0)[0] == pytest.approx(0.5)
+
+
+def test_mmm_ajusta_bem_e_supera_plataforma(serie_mmm):
+    df, _ = serie_mmm
+    m = mkt.ajustar_mmm(df)
+    assert m.r2_treino > 0.95 and m.mape_teste < 0.03
+    t = mkt.comparar_roas(df, m)
+    erro_plat = ((t.roas_plataforma - t.roas_incremental_real).abs() / t.roas_incremental_real).mean()
+    erro_mmm = ((t.roas_incremental_mmm - t.roas_incremental_real).abs() / t.roas_incremental_real).mean()
+    assert erro_mmm < erro_plat
+
+
+def test_teste_geo_recupera_iroas():
+    r = mkt.teste_permutacao(mkt.gerar_teste_geo())
+    assert r["p_valor"] < 0.05
+    assert r["iroas_ic_inf"] <= mkt.VERDADE["Meta Ads"].roas_incremental <= r["iroas_ic_sup"]
+
+
+def test_calibracao_reduz_erro_e_melhora_receita_real(serie_mmm):
+    df, beta = serie_mmm
+    sem = mkt.ajustar_mmm(df)
+    iroas = mkt.teste_permutacao(mkt.gerar_teste_geo())["iroas"]
+    com = mkt.ajustar_mmm(df, calibracao={"Meta Ads": iroas})
+    assert mkt.erro_roas(mkt.comparar_roas(df, com)) < mkt.erro_roas(mkt.comparar_roas(df, sem))
+
+    def ganho_real(m):
+        o = mkt.otimizar_orcamento(df, m)
+        return mkt.receita_real_regime(o.gasto_otimo, beta) / mkt.receita_real_regime(o.gasto_atual, beta) - 1
+
+    assert ganho_real(com) > 0
+
+
+def test_otimizacao_respeita_orcamento_e_limites(serie_mmm):
+    df, _ = serie_mmm
+    o = mkt.otimizar_orcamento(df, mkt.ajustar_mmm(df))
+    assert o.gasto_otimo.sum() == pytest.approx(o.gasto_atual.sum(), rel=1e-4)
+    assert (o.gasto_otimo >= 0.5 * o.gasto_atual - 1).all() and (o.gasto_otimo <= 2 * o.gasto_atual + 1).all()
