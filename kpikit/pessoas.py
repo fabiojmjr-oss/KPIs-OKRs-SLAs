@@ -5,6 +5,7 @@ Três perguntas que conectam RH à capacidade operacional:
 2. Quem vai sair nos 90 primeiros dias e por quê? → kaplan_meier, logrank, regressao_logistica
 3. Quantas pessoas escalar, e com que folgas?     → escala_6x1 (programação inteira)
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -77,8 +78,10 @@ def kaplan_meier(dias: pd.Series, evento: pd.Series) -> pd.DataFrame:
         se = np.sqrt(var) / np.abs(np.log(tabela.sobrevivencia))
         tabela["ic_inf"] = np.exp(-np.exp(loglog + 1.96 * se))
         tabela["ic_sup"] = np.exp(-np.exp(loglog - 1.96 * se))
-    inicio = pd.DataFrame({"saidas": 0, "n": 0, "em_risco": len(df), "sobrevivencia": 1.0, "ic_inf": 1.0,
-                           "ic_sup": 1.0}, index=pd.Index([0], name="t"))
+    inicio = pd.DataFrame(
+        {"saidas": 0, "n": 0, "em_risco": len(df), "sobrevivencia": 1.0, "ic_inf": 1.0, "ic_sup": 1.0},
+        index=pd.Index([0], name="t"),
+    )
     return pd.concat([inicio, tabela[tabela.index > 0]])
 
 
@@ -91,7 +94,9 @@ def logrank(dias: pd.Series, evento: pd.Series, grupo: pd.Series) -> dict:
     df = pd.DataFrame({"t": dias.to_numpy(), "e": evento.to_numpy(), "g": grupo.to_numpy()})
     grupos = sorted(df.g.unique())
     tempos = np.sort(df.loc[df.e == 1, "t"].unique())
-    obs = np.zeros(len(grupos)); esp = np.zeros(len(grupos)); V = np.zeros((len(grupos), len(grupos)))
+    obs = np.zeros(len(grupos))
+    esp = np.zeros(len(grupos))
+    V = np.zeros((len(grupos), len(grupos)))
     t_arr, e_arr, g_arr = df.t.to_numpy(), df.e.to_numpy(), df.g.to_numpy()
     for t in tempos:
         em_risco = t_arr >= t
@@ -108,8 +113,13 @@ def logrank(dias: pd.Series, evento: pd.Series, grupo: pd.Series) -> dict:
     k = len(grupos) - 1
     diff = (obs - esp)[:k]
     qui2 = float(diff @ np.linalg.pinv(V[:k, :k]) @ diff)
-    return {"qui2": qui2, "gl": k, "p_valor": float(stats.chi2.sf(qui2, k)),
-            "observado": dict(zip(grupos, obs.astype(int))), "esperado": dict(zip(grupos, esp.round(1)))}
+    return {
+        "qui2": qui2,
+        "gl": k,
+        "p_valor": float(stats.chi2.sf(qui2, k)),
+        "observado": dict(zip(grupos, obs.astype(int), strict=True)),
+        "esperado": dict(zip(grupos, esp.round(1), strict=True)),
+    }
 
 
 def regressao_logistica(X: pd.DataFrame, y: pd.Series, iteracoes: int = 50) -> pd.DataFrame:
@@ -127,37 +137,54 @@ def regressao_logistica(X: pd.DataFrame, y: pd.Series, iteracoes: int = 50) -> p
             break
     ep = np.sqrt(np.diag(np.linalg.inv(H)))
     z = beta / ep
-    nomes = ["intercepto"] + list(X.columns)
-    return pd.DataFrame({"coef": beta, "erro_padrao": ep, "razao_chances": np.exp(beta),
-                         "rc_ic_inf": np.exp(beta - 1.96 * ep), "rc_ic_sup": np.exp(beta + 1.96 * ep),
-                         "p_valor": 2 * stats.norm.sf(np.abs(z))}, index=nomes)
+    nomes = ["intercepto", *list(X.columns)]
+    return pd.DataFrame(
+        {
+            "coef": beta,
+            "erro_padrao": ep,
+            "razao_chances": np.exp(beta),
+            "rc_ic_inf": np.exp(beta - 1.96 * ep),
+            "rc_ic_sup": np.exp(beta + 1.96 * ep),
+            "p_valor": 2 * stats.norm.sf(np.abs(z)),
+        },
+        index=nomes,
+    )
 
 
 def matriz_risco_saida(colab: pd.DataFrame, fim) -> tuple[pd.DataFrame, pd.Series]:
     """Variáveis explicativas e alvo (saiu em < 90 dias) só para quem já completou 90 dias de observação."""
     maduros = colab[colab.data_admissao + pd.Timedelta(days=90) <= pd.Timestamp(fim)].copy()
     y = ((maduros.data_desligamento - maduros.data_admissao).dt.days < 90).astype(int)
-    X = pd.DataFrame({
-        "turno_noite": (maduros.turno == "noite").astype(int),
-        "distancia_10km": (maduros.distancia_km - 9) / 10,
-        "canal_agencia": (maduros.canal_recrutamento == "agencia").astype(int),
-        "canal_indicacao": (maduros.canal_recrutamento == "indicacao").astype(int),
-        "unidade_3pl": (maduros.modelo == "3PL").astype(int),
-        "admitido_em_pico": maduros.admitido_em_pico.astype(int),
-        "com_buddy": maduros.com_buddy.astype(int),
-    }, index=maduros.index)
+    X = pd.DataFrame(
+        {
+            "turno_noite": (maduros.turno == "noite").astype(int),
+            "distancia_10km": (maduros.distancia_km - 9) / 10,
+            "canal_agencia": (maduros.canal_recrutamento == "agencia").astype(int),
+            "canal_indicacao": (maduros.canal_recrutamento == "indicacao").astype(int),
+            "unidade_3pl": (maduros.modelo == "3PL").astype(int),
+            "admitido_em_pico": maduros.admitido_em_pico.astype(int),
+            "com_buddy": maduros.com_buddy.astype(int),
+        },
+        index=maduros.index,
+    )
     return X, y
 
 
 # ---------------------------------------------------------------- 3. Escala
-def necessidade_semanal(dados: dict[str, pd.DataFrame], unidade: str, inicio: str, fim: str,
-                        produtividade: float = 7.5, horas_turno: float = 8.0,
-                        percentil: float = 0.85) -> pd.Series:
+def necessidade_semanal(
+    dados: dict[str, pd.DataFrame],
+    unidade: str,
+    inicio: str,
+    fim: str,
+    produtividade: float = 7.5,
+    horas_turno: float = 8.0,
+    percentil: float = 0.85,
+) -> pd.Series:
     """Operadores presentes necessários por dia da semana (percentil da demanda, não a média)."""
     df = dados["fato_cd"].query("unidade_id == @unidade and pedidos > 0")
     df = df[(df.data >= pd.Timestamp(inicio)) & (df.data <= pd.Timestamp(fim))]
     cal = dados["dim_calendario"].set_index("data")
-    df = df[df.data.map(cal.mult_evento) <= 1.0]      # escala-base; pico tem plano próprio
+    df = df[df.data.map(cal.mult_evento) <= 1.0]  # escala-base; pico tem plano próprio
     ped = df.groupby(df.data.dt.dayofweek).pedidos.quantile(percentil)
     nec = np.ceil(ped / (produtividade * horas_turno)).reindex(range(7)).rename(index=dict(enumerate(DIAS)))
     nec.index.name = "dia"
@@ -167,8 +194,8 @@ def necessidade_semanal(dados: dict[str, pd.DataFrame], unidade: str, inicio: st
 @dataclass
 class ResultadoEscala:
     quadro: int
-    folgas_por_dia: pd.Series          # quantos folgam em cada dia
-    cobertura: pd.DataFrame            # necessidade × presentes esperados
+    folgas_por_dia: pd.Series  # quantos folgam em cada dia
+    cobertura: pd.DataFrame  # necessidade × presentes esperados
     quadro_ingenuo: int
     horas_ociosas_pct: float
 
@@ -182,20 +209,22 @@ def escala_6x1(necessidade: pd.Series, absenteismo: pd.Series, folga_domingo_min
     """
     nec = necessidade.to_numpy(dtype=float)
     ab = absenteismo.to_numpy(dtype=float)
-    A = np.ones((7, 7)) - np.eye(7)                 # linha d: quem trabalha no dia d
+    A = np.ones((7, 7)) - np.eye(7)  # linha d: quem trabalha no dia d
     A_eff = A * (1 - ab)[:, None]
     restricoes = [LinearConstraint(A_eff, lb=nec, ub=np.inf)]
     if folga_domingo_min > 0:
         linha = -folga_domingo_min * np.ones(7)
-        linha[6] += 1                               # x_dom − f·Σx ≥ 0
+        linha[6] += 1  # x_dom − f·Σx ≥ 0
         restricoes.append(LinearConstraint(linha[None, :], lb=0, ub=np.inf))
     res = milp(c=np.ones(7), constraints=restricoes, integrality=np.ones(7), bounds=Bounds(0, np.inf))
     if not res.success:
         raise ValueError(f"Escala inviável: {res.message}")
     x = np.round(res.x).astype(int)
     presentes = A @ x * (1 - ab)
-    cobertura = pd.DataFrame({"necessidade": nec, "escalados": A @ x, "presentes_esperados": presentes.round(1),
-                              "folga_no_dia": x}, index=necessidade.index)
+    cobertura = pd.DataFrame(
+        {"necessidade": nec, "escalados": A @ x, "presentes_esperados": presentes.round(1), "folga_no_dia": x},
+        index=necessidade.index,
+    )
     # Régua: quadro plano dimensionado pelo pior dia, sem desenhar folgas.
     ingenuo = int(np.ceil((nec / (1 - ab)).max() * 7 / 6))
     ociosas = float((presentes - nec).sum() / presentes.sum())

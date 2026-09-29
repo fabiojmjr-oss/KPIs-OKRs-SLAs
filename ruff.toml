@@ -1,0 +1,15 @@
+line-length = 120
+extend-exclude = ["*.ipynb", ".venv"]
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "RUF"]
+ignore = [
+    "RUF001", "RUF002", "RUF003",  # texto em português usa "×", "–" e aspas tipográficas de propósito
+    "E741",
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["E402"]
+"app/*" = ["E402"]
+"notebooks/nb_*.py" = ["E501"]   # células de notebook com texto longo

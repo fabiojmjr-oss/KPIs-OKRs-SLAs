@@ -3,12 +3,13 @@
 Premissas de camada D (ver 00-fundamentos/linha-de-base-mercado.md).
 Todos os números aqui são de simulação; benchmarks reais estão em BENCHMARKS.
 """
+
 from dataclasses import dataclass, field
 from datetime import date
 
 EMPRESA = "Vértice Commerce & Logística (fictícia)"
 INICIO = date(2025, 1, 1)
-FIM = date(2026, 9, 30)      # "hoje" do caso: fechamento do 3T26
+FIM = date(2026, 9, 30)  # "hoje" do caso: fechamento do 3T26
 SEMENTE = 42
 
 # Regiões: participação na demanda nacional potencial e data de entrada da operação.
@@ -49,10 +50,10 @@ UNIDADES = [
     ("LM-BEL", "BASE", "N", "3PL", 5_500),
 ]
 
-PEDIDOS_DIA_BASE = 110_000   # demanda média nacional (potencial) fora de pico, jan/2025
-CRESCIMENTO_ANUAL = 0.35     # crescimento orgânico a/a
-TICKET_MEDIO = 165.0         # R$
-MARGEM_CONTRIBUICAO = 0.22   # antes de mídia e logística
+PEDIDOS_DIA_BASE = 110_000  # demanda média nacional (potencial) fora de pico, jan/2025
+CRESCIMENTO_ANUAL = 0.35  # crescimento orgânico a/a
+TICKET_MEDIO = 165.0  # R$
+MARGEM_CONTRIBUICAO = 0.22  # antes de mídia e logística
 
 # Eventos de sazonalidade: (início, fim, multiplicador de demanda)
 EVENTOS = [
@@ -66,8 +67,7 @@ EVENTOS = [
 
 # Iniciativas 2026 — hipóteses dos OKRs. Cada uma ganha efeito em rampa de ~60 dias a partir do início.
 INICIATIVAS = {
-    "capacidade_2026": ("Plano de capacidade 2026: novos turnos e expansão de CDs/hubs/bases (+35%)",
-                        date(2026, 1, 1)),
+    "capacidade_2026": ("Plano de capacidade 2026: novos turnos e expansão de CDs/hubs/bases (+35%)", date(2026, 1, 1)),
     "onboarding_buddy": ("Onboarding padronizado com buddy e trilha de proficiência", date(2026, 1, 15)),
     "wms_scanner": ("Conferência por scanner e endereçamento dirigido no WMS", date(2026, 2, 1)),
     "janelas_linehaul": ("Malha middle mile com janelas sincronizadas (CD → hub → base)", date(2026, 3, 1)),
@@ -99,6 +99,7 @@ class Meta:
     A linha de base NÃO fica aqui: é calculada dos dados (2º semestre de 2025)
     por kpikit.kpis.linha_base(), para nunca divergir da série histórica.
     """
+
     kpi_id: str
     nome: str
     meta: float
@@ -111,16 +112,11 @@ class Meta:
 
 # Metas 2026 do caso — ancoradas nos benchmarks das camadas A/B quando existem.
 METAS_2026 = [
-    Meta("LM-011", "Pedidos entregues em até 48h", 0.80, 0.77,
-         "Mercado Livre 2T26 — envios rápidos em até 48h", "A"),
-    Meta("SC-009", "Expedição no cut-off", 0.99, 0.995,
-         "WERC DC Measures 2025 — best-in-class on-time shipments", "B"),
-    Meta("SC-007", "Acurácia de picking", 0.9968, 0.9968,
-         "WERC DC Measures 2025 — best-in-class", "B"),
-    Meta("SC-006", "Dock-to-stock P90", 4.0, 3.5,
-         "WERC DC Measures 2025 — best-in-class", "B", "h", "menor"),
-    Meta("LM-002", "FADR", 0.93, 0.90,
-         "Fornecedores de roteirização (faixa 'forte' > 90%)", "C"),
+    Meta("LM-011", "Pedidos entregues em até 48h", 0.80, 0.77, "Mercado Livre 2T26 — envios rápidos em até 48h", "A"),
+    Meta("SC-009", "Expedição no cut-off", 0.99, 0.995, "WERC DC Measures 2025 — best-in-class on-time shipments", "B"),
+    Meta("SC-007", "Acurácia de picking", 0.9968, 0.9968, "WERC DC Measures 2025 — best-in-class", "B"),
+    Meta("SC-006", "Dock-to-stock P90", 4.0, 3.5, "WERC DC Measures 2025 — best-in-class", "B", "h", "menor"),
+    Meta("LM-002", "FADR", 0.93, 0.90, "Fornecedores de roteirização (faixa 'forte' > 90%)", "C"),
     Meta("LM-001", "OTD vs. promessa", 0.96),
     Meta("LM-003", "Custo por entrega", 12.5, unidade="R$", polaridade="menor"),
     Meta("MK-002", "POAS", 1.80, unidade="x"),
@@ -131,13 +127,15 @@ METAS_2026 = [
 @dataclass
 class ParametrosCapacidade:
     """Premissas do modelo de mix de recursos (mão de obra de CD)."""
-    produtividade_pedidos_hh: float = 7.5          # pedidos por hora-homem, operador treinado
+
+    produtividade_pedidos_hh: float = 7.5  # pedidos por hora-homem, operador treinado
     horas_turno: float = 8.0
     dias_semana: int = 6
-    custo_hh_proprio: float = 38.0                  # R$/h, com encargos
-    custo_hh_extra: float = 57.0                    # +50%
+    custo_hh_proprio: float = 38.0  # R$/h, com encargos
+    custo_hh_extra: float = 57.0  # +50%
     custo_hh_temporario: float = 46.0
-    custo_pedido_3pl: float = 7.40                  # R$/pedido, tudo incluído
-    fator_produtividade_temp: float = 0.72          # curva de aprendizagem média no período
-    acuracia: dict = field(default_factory=lambda: {
-        "proprio": 0.9975, "extra": 0.9965, "temporario": 0.9945, "3pl": 0.9958})
+    custo_pedido_3pl: float = 7.40  # R$/pedido, tudo incluído
+    fator_produtividade_temp: float = 0.72  # curva de aprendizagem média no período
+    acuracia: dict = field(
+        default_factory=lambda: {"proprio": 0.9975, "extra": 0.9965, "temporario": 0.9945, "3pl": 0.9958}
+    )

@@ -1,4 +1,4 @@
-# Linha de base de mercado (referência: set/2026)
+# Linha de base de mercado (referência: set/2026 · revisado em 29/09/2026)
 
 Mercado Livre e Amazon são a régua de mercado em velocidade e confiabilidade de entrega — mas **divulgam poucos KPIs operacionais**. Eles publicam resultados de negócio e de velocidade; não publicam acurácia de picking, FADR, dwell time ou custo por entrega. Por isso, a linha de base deste repositório é construída em camadas, cada uma com seu **nível de confiança**:
 
@@ -37,6 +37,8 @@ Mercado Livre e Amazon são a régua de mercado em velocidade e confiabilidade d
 | Acurácia de picking (% por pedido) | ≥ 99,68% | SC-007 |
 | Dock-to-stock | < 3,5 h | SC-006 |
 
+> **Atualização set/2026:** a WERC lançou o *DC Measures 2026* (36 métricas), na conferência anual. Os valores de best-in-class dessa edição ainda não foram verificados em fonte primária acessível, então **mantêm-se os de 2025** até a verificação. Circula "dock-to-stock < 2 h", mas em material de fornecedor sem edição identificada (camada C, não adotado).
+
 Fonte: WERC, *DC Measures 2025* (divulgado em set/2025), pesquisas de 2024–2025 com respondentes de manufatura, varejo, atacado, 3PL e life sciences. O relatório completo é pago; os valores acima são os divulgados publicamente pela WERC e pela imprensa especializada.
 
 ## Camada C — Ordens de grandeza (last mile)
@@ -59,4 +61,5 @@ As metas do caso fictício ([`caso-integrado/`](../caso-integrado/)) combinam A 
 - Mercado Libre Q2 2026 earnings call (resumos Yahoo Finance / Investing.com, ago/2026)
 - Amazon — "Amazon Sets New Prime Delivery Speed Record in 2025…" (Business Wire, 03/02/2026): https://www.aboutamazon.com/news/retail/amazon-prime-same-day-next-day-delivery-2025
 - WERC — 2025 DC Measures Report: https://werc.org/news/702949/
+- WERC — DC Measures (página da edição vigente, 2026): https://werc.org/page/ASSESS-DC_Measures
 - Capgemini Research Institute — *The last-mile delivery challenge* (2019)

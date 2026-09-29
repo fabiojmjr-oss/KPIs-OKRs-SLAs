@@ -1,5 +1,10 @@
 # KPIs · OKRs · SLAs
 
+[![CI](https://github.com/fabiojmjr-oss/KPIs-OKRs-SLAs/actions/workflows/ci.yml/badge.svg)](https://github.com/fabiojmjr-oss/KPIs-OKRs-SLAs/actions/workflows/ci.yml)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3b6ea5)
+[![Código: MIT](https://img.shields.io/badge/c%C3%B3digo-MIT-2e8b57)](LICENSE)
+[![Conteúdo: CC BY 4.0](https://img.shields.io/badge/conte%C3%BAdo-CC%20BY%204.0-2e8b57)](LICENSE-CONTEUDO.md)
+
 **Sistema de gestão de desempenho que conecta estratégia → execução → dados**, cobrindo operações logísticas ponta a ponta (supply chain, middle mile, last mile) e as funções que as sustentam (pessoas, marketing de tráfego, projetos, ágil e Lean Six Sigma).
 
 > Princípio central: **OKR muda o sistema, KPI monitora a saúde do sistema, SLA contrata o nível de serviço entre partes.** Misturar os três é a causa mais comum de painéis com 80 indicadores e nenhuma decisão.
@@ -7,6 +12,16 @@
 O repositório tem duas camadas:
 1. **Biblioteca de referência**: fundamentos, templates e 8 áreas com árvores de KPIs, OKRs e SLAs.
 2. **Caso integrado com ferramentas**: uma empresa fictícia de grande porte (*Vértice*), com dados simulados, pacote Python, app Streamlit, 4 notebooks didáticos (incluindo um projeto DMAIC completo) e modelo Power BI. Linha de base calibrada pelo que Mercado Livre, Amazon e WERC divulgam publicamente.
+
+## Roteiro de 5 minutos
+
+| Se você tem… | Veja |
+|---|---|
+| **1 minuto** | A tabela *Destaques do caso*, logo abaixo: pergunta executiva → achado |
+| **5 minutos** | O notebook [`caso_vertice`](notebooks/caso_vertice.ipynb), que abre direto no GitHub, já executado |
+| **Interesse em Lean Six Sigma** | O projeto DMAIC completo em [`dmaic_dock_to_stock_am1`](notebooks/dmaic_dock_to_stock_am1.ipynb) e o [A3](caso-integrado/dmaic-dock-to-stock-am1.md) |
+| **Interesse em rede logística** | O notebook [`middle_mile_consolidacao_rotas`](notebooks/middle_mile_consolidacao_rotas.ipynb): consolidação, despacho, roteirização e transbordo |
+| **Interesse no método** | [`00-fundamentos/`](00-fundamentos/) e o [catálogo de KPIs](catalogo/kpis.csv) |
 
 ![Painel executivo](docs/img/app-executivo.png)
 
@@ -32,6 +47,10 @@ O repositório tem duas camadas:
 ![Projeto DMAIC](docs/img/app-dmaic.png)
 
 ![Middle mile](docs/img/app-middle-mile.png)
+
+## In English (summary)
+
+A performance-management portfolio that links **strategy → OKRs → KPIs → SLAs** for end-to-end logistics (supply chain, middle mile, last mile) and its support functions (people, paid media, projects, agile, Lean Six Sigma). It includes a fictional large Brazilian e-commerce/logistics company (*Vértice*) with a causal data simulator and a Python toolkit (`kpikit`): KPI engine (ratio-of-sums aggregation), SPC with Laney p′ charts and non-normal capability, linear programming for peak workforce/3PL mix (with shadow prices), people analytics (Kaplan-Meier, logistic regression, 6x1 shift scheduling via MILP), a full DMAIC project, and middle-mile network design (2D load consolidation, dispatch-policy simulation, Clarke-Wright routing and cross-dock location). Market baselines come from public disclosures (Mercado Livre, Amazon, WERC), labeled by confidence level. Written in Portuguese; company and operational data are fictional.
 
 ## Estrutura
 

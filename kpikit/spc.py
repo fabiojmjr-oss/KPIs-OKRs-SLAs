@@ -6,13 +6,14 @@ quase todo ponto parece "fora de controle" (sobredispersão). A carta p' de
 Laney corrige isso usando a variação real entre subgrupos. Usar a carta p pura
 nesses casos gera caça a causas especiais inexistentes.
 """
+
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 
-D2 = 1.128   # constante para amplitude móvel de n=2
+D2 = 1.128  # constante para amplitude móvel de n=2
 D4 = 3.267
 
 
@@ -23,8 +24,16 @@ def carta_imr(x: pd.Series) -> pd.DataFrame:
     mr_bar = mr.mean()
     sigma = mr_bar / D2
     centro = x.mean()
-    df = pd.DataFrame({"valor": x, "centro": centro, "lsc": centro + 3 * sigma, "lic": centro - 3 * sigma,
-                       "mr": mr, "mr_lsc": D4 * mr_bar})
+    df = pd.DataFrame(
+        {
+            "valor": x,
+            "centro": centro,
+            "lsc": centro + 3 * sigma,
+            "lic": centro - 3 * sigma,
+            "mr": mr,
+            "mr_lsc": D4 * mr_bar,
+        }
+    )
     df.attrs["sigma"] = sigma
     return df
 
@@ -85,8 +94,16 @@ def capabilidade(x: pd.Series, lie: float | None = None, lse: float | None = Non
     cp, cpk = indices(s_curto)
     pp, ppk = indices(s_longo)
     fora = ((x > lse).sum() if lse is not None else 0) + ((x < lie).sum() if lie is not None else 0)
-    return {"media": mu, "sigma_curto": s_curto, "sigma_longo": s_longo, "Cp": cp, "Cpk": cpk,
-            "Pp": pp, "Ppk": ppk, "pct_fora_spec_observado": fora / len(x)}
+    return {
+        "media": mu,
+        "sigma_curto": s_curto,
+        "sigma_longo": s_longo,
+        "Cp": cp,
+        "Cpk": cpk,
+        "Pp": pp,
+        "Ppk": ppk,
+        "pct_fora_spec_observado": fora / len(x),
+    }
 
 
 def dpmo(defeitos: float, unidades: float, oportunidades: float = 1) -> float:

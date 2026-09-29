@@ -14,8 +14,14 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements-dev.txt
+      - name: Lint e formatação
+        run: |
+          ruff check .
+          ruff format --check kpikit app tests catalogo notebooks/_celulas.py notebooks/gerar_notebook.py
       - name: Catálogo de KPIs
         run: python catalogo/validar_catalogo.py
+      - name: Documentação (links e IDs de KPI)
+        run: python catalogo/verificar_docs.py
       - name: Testes
         run: pytest -q
       - name: Simulador gera todas as tabelas

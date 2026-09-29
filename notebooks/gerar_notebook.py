@@ -4,6 +4,7 @@ Uso:
     python notebooks/gerar_notebook.py            # todos
     python notebooks/gerar_notebook.py pessoas    # só um (caso_vertice | pessoas | dmaic | middle_mile)
 """
+
 import sys
 
 import nb_caso_vertice
@@ -18,8 +19,12 @@ NOTEBOOKS = {
     "dmaic": nb_dmaic.CELULAS,
     "middle_mile": nb_middle_mile.CELULAS,
 }
-ARQUIVOS = {"caso_vertice": "caso_vertice", "pessoas": "pessoas_forca_de_trabalho",
-            "dmaic": "dmaic_dock_to_stock_am1", "middle_mile": "middle_mile_consolidacao_rotas"}
+ARQUIVOS = {
+    "caso_vertice": "caso_vertice",
+    "pessoas": "pessoas_forca_de_trabalho",
+    "dmaic": "dmaic_dock_to_stock_am1",
+    "middle_mile": "middle_mile_consolidacao_rotas",
+}
 
 if __name__ == "__main__":
     for nome in sys.argv[1:] or NOTEBOOKS:
