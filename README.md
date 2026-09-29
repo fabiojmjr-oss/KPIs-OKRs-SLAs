@@ -1,12 +1,28 @@
 # KPIs · OKRs · SLAs
 
+[![CI](https://github.com/fabiojmjr-oss/KPIs-OKRs-SLAs/actions/workflows/ci.yml/badge.svg)](https://github.com/fabiojmjr-oss/KPIs-OKRs-SLAs/actions/workflows/ci.yml)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3b6ea5)
+[![Código: MIT](https://img.shields.io/badge/c%C3%B3digo-MIT-2e8b57)](LICENSE)
+[![Conteúdo: CC BY 4.0](https://img.shields.io/badge/conte%C3%BAdo-CC%20BY%204.0-2e8b57)](LICENSE-CONTEUDO.md)
+
 **Sistema de gestão de desempenho que conecta estratégia → execução → dados**, cobrindo operações logísticas ponta a ponta (supply chain, middle mile, last mile) e as funções que as sustentam (pessoas, marketing de tráfego, projetos, ágil e Lean Six Sigma).
 
 > Princípio central: **OKR muda o sistema, KPI monitora a saúde do sistema, SLA contrata o nível de serviço entre partes.** Misturar os três é a causa mais comum de painéis com 80 indicadores e nenhuma decisão.
 
 O repositório tem duas camadas:
 1. **Biblioteca de referência**: fundamentos, templates e 8 áreas com árvores de KPIs, OKRs e SLAs.
-2. **Caso integrado com ferramentas**: uma empresa fictícia de grande porte (*Vértice*), com dados simulados, pacote Python, app Streamlit, 4 notebooks didáticos (incluindo um projeto DMAIC completo) e modelo Power BI. Linha de base calibrada pelo que Mercado Livre, Amazon e WERC divulgam publicamente.
+2. **Caso integrado com ferramentas**: uma empresa fictícia de grande porte (*Vértice*), com dados simulados, pacote Python, app Streamlit, 5 notebooks didáticos (incluindo um projeto DMAIC completo) e modelo Power BI. Linha de base calibrada pelo que Mercado Livre, Amazon e WERC divulgam publicamente.
+
+## Roteiro de 5 minutos
+
+| Se você tem… | Veja |
+|---|---|
+| **1 minuto** | A tabela *Destaques do caso*, logo abaixo: pergunta executiva → achado |
+| **5 minutos** | O notebook [`caso_vertice`](notebooks/caso_vertice.ipynb), que abre direto no GitHub, já executado |
+| **Interesse em Lean Six Sigma** | O projeto DMAIC completo em [`dmaic_dock_to_stock_am1`](notebooks/dmaic_dock_to_stock_am1.ipynb) e o [A3](caso-integrado/dmaic-dock-to-stock-am1.md) |
+| **Interesse em marketing e dados** | O notebook [`marketing_mmm_incrementalidade`](notebooks/marketing_mmm_incrementalidade.ipynb): MMM, teste geo, calibração e realocação de verba |
+| **Interesse em rede logística** | O notebook [`middle_mile_consolidacao_rotas`](notebooks/middle_mile_consolidacao_rotas.ipynb): consolidação, despacho, roteirização e transbordo |
+| **Interesse no método** | [`00-fundamentos/`](00-fundamentos/) e o [catálogo de KPIs](catalogo/kpis.csv) |
 
 ![Painel executivo](docs/img/app-executivo.png)
 
@@ -25,6 +41,7 @@ O repositório tem duas camadas:
 | Esperar encher ou sair no horário? | [Notebook de middle mile](notebooks/middle_mile_consolidacao_rotas.ipynb) · app *Middle mile* | Regra híbrida (encher até 80% **ou** trava de meia janela): 100% no prazo com custo/m³ ~12% menor que o horário fixo de 4 h; "esperar encher" sem trava perde 3–6% do volume |
 | Como roteirizar o interior? | Notebook de middle mile §3 | Milk run + veículo certo por rota: **−44% de custo/dia** contra "um caminhão por cidade". A rota mais barata dura 30 h e quebra o D+1: a extensão da rota é decisão de **serviço** |
 | Vale abrir um transbordo? Onde? | Notebook de middle mile §4 · app *Middle mile* | **Transbordo só se paga longe do hub:** satélite em Patos −11,5% de custo e metade dos pernoites; Caruaru/Campina Grande encarecem de 8% a 15%. Uma onda antecipada de 3 h leva o prazo a 100% sem custo. A decisão só vira acima de ~R$ 8,2 mil/dia de custo fixo |
+| Quanto da venda a mídia realmente causa? | [Notebook de marketing](notebooks/marketing_mmm_incrementalidade.ipynb) · app *Marketing* | A plataforma infla o ROAS em 1,3× a 3,6×. O MMM sozinho superestima Meta em ~80%; **calibrado com um teste geo**, o erro cai pela metade e a realocação rende ~R$ 90 mi/ano de receita incremental com o mesmo orçamento, quase o dobro de seguir o ROAS da plataforma |
 | Como fechar um gap de capability? | [Notebook DMAIC](notebooks/dmaic_dock_to_stock_am1.ipynb) · [A3](caso-integrado/dmaic-dock-to-stock-am1.md) · app *DMAIC* | Pareto da média ≠ Pareto da cauda. P90 do dock-to-stock no CD-AM1: 9,6 h → 4,9 h; Ppk (percentis) 0,44 → 1,18 |
 
 ![Otimização de capacidade](docs/img/app-capacidade.png)
@@ -33,18 +50,24 @@ O repositório tem duas camadas:
 
 ![Middle mile](docs/img/app-middle-mile.png)
 
+![Marketing: MMM calibrado](docs/img/app-marketing.png)
+
+## In English (summary)
+
+A performance-management portfolio that links **strategy → OKRs → KPIs → SLAs** for end-to-end logistics (supply chain, middle mile, last mile) and its support functions (people, paid media, projects, agile, Lean Six Sigma). It includes a fictional large Brazilian e-commerce/logistics company (*Vértice*) with a causal data simulator and a Python toolkit (`kpikit`): KPI engine (ratio-of-sums aggregation), SPC with Laney p′ charts and non-normal capability, linear programming for peak workforce/3PL mix (with shadow prices), people analytics (Kaplan-Meier, logistic regression, 6x1 shift scheduling via MILP), a full DMAIC project, middle-mile network design (2D load consolidation, dispatch-policy simulation, Clarke-Wright routing and cross-dock location) and marketing measurement (marketing mix modeling with adstock and saturation, calibrated by a geo holdout experiment, validated against a known ground truth). Market baselines come from public disclosures (Mercado Livre, Amazon, WERC), labeled by confidence level. Written in Portuguese; company and operational data are fictional.
+
 ## Estrutura
 
 | Pasta | Conteúdo |
 |---|---|
 | [`00-fundamentos/`](00-fundamentos/) | Hierarquia OKR/KPI/SLA, governança e cadência (Hoshin Kanri), interdependências, **linha de base de mercado com fontes** |
 | [`templates/`](templates/) | Fichas padrão: OKR, KPI (ficha técnica), SLA |
-| [`catalogo/`](catalogo/) | Catálogo de 92 KPIs (CSV) + validador |
+| [`catalogo/`](catalogo/) | Catálogo de 95 KPIs (CSV), validador e verificador de documentação |
 | [`areas/`](areas/) | 8 áreas: supply chain, middle mile, last mile, pessoas, marketing de tráfego, projetos, scrum/ágil, Lean Six Sigma |
 | [`caso-integrado/`](caso-integrado/) | Vértice: perfil, dor central, X-Matrix, OKRs 2026 (JSON), SLAs da rede híbrida, adaptação por porte, A3 do projeto DMAIC |
-| [`kpikit/`](kpikit/) | Pacote Python: `simulador`, `kpis`, `spc`, `capacidade`, `okr`, `pessoas`, `dmaic`, `middle_mile` |
+| [`kpikit/`](kpikit/) | Pacote Python: `simulador`, `kpis`, `spc`, `capacidade`, `okr`, `pessoas`, `dmaic`, `middle_mile`, `marketing` |
 | [`app/`](app/) | Painel Streamlit (9 abas) · [como publicar](docs/DEPLOY.md) |
-| [`notebooks/`](notebooks/) | Executados, com caixas **🧠 Por dentro do código** e **🎯 Leitura executiva**: [`caso_vertice`](notebooks/caso_vertice.ipynb) · [`pessoas_forca_de_trabalho`](notebooks/pessoas_forca_de_trabalho.ipynb) · [`dmaic_dock_to_stock_am1`](notebooks/dmaic_dock_to_stock_am1.ipynb) · [`middle_mile_consolidacao_rotas`](notebooks/middle_mile_consolidacao_rotas.ipynb) |
+| [`notebooks/`](notebooks/) | Executados, com caixas **🧠 Por dentro do código** e **🎯 Leitura executiva**: [`caso_vertice`](notebooks/caso_vertice.ipynb) · [`pessoas_forca_de_trabalho`](notebooks/pessoas_forca_de_trabalho.ipynb) · [`dmaic_dock_to_stock_am1`](notebooks/dmaic_dock_to_stock_am1.ipynb) · [`middle_mile_consolidacao_rotas`](notebooks/middle_mile_consolidacao_rotas.ipynb) · [`marketing_mmm_incrementalidade`](notebooks/marketing_mmm_incrementalidade.ipynb) |
 | [`powerbi/`](powerbi/) | Modelo estrela, medidas DAX, tema e roteiro de páginas |
 | [`dados/`](dados/) | CSVs simulados (star schema), prontos para Power BI |
 
@@ -55,9 +78,9 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 
 python -m kpikit.simulador          # (re)gera dados/ — semente fixa, reprodutível
-pytest -q                           # 57 testes
+pytest -q                           # 66 testes
 streamlit run app/streamlit_app.py  # painel
-python notebooks/gerar_notebook.py  # reexecuta os 4 notebooks
+python notebooks/gerar_notebook.py  # reexecuta os 5 notebooks
 ```
 
 ## Convenções

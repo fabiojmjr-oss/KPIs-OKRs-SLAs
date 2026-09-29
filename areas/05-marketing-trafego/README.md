@@ -62,6 +62,15 @@ North Star: Lucro de contribuição incremental gerado por mídia (R$)
 - Campanha sem **comunicação ao planejamento** gera pico não previsto → ruptura, estouro de cut-off, queda de OTD → avaliação ruim → CAC futuro sobe.
 - SLA interno recomendado abaixo (Marketing → Supply).
 
+## Ferramentas
+[`kpikit/marketing.py`](../../kpikit/marketing.py): MMM com adstock e saturação, teste geo de desligamento com diferença-em-diferenças, teste de permutação e análise de poder, calibração do MMM pelo experimento e realocação de verba por ROAS marginal. Explicado passo a passo, com validação contra uma verdade conhecida, em [`notebooks/marketing_mmm_incrementalidade.ipynb`](../../notebooks/marketing_mmm_incrementalidade.ipynb).
+
+| ID | KPI | Fórmula | Pol. | Nota |
+|---|---|---|---|---|
+| MK-011 | ROAS incremental (experimento) | Receita incremental medida em teste geo / variação de verba | ↑ | Régua para calibrar o MMM |
+| MK-012 | ROAS marginal | Receita do próximo real investido (curva de resposta) | ↑ | Critério de alocação: igualar entre canais |
+| MK-013 | Erro do MMM vs. experimento | \|ROAS MMM − ROAS experimento\| / ROAS experimento | ↓ | Mede se o modelo merece confiança |
+
 ## OKRs de exemplo
 
 **O1 — Crescer com lucro, não com volume**

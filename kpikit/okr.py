@@ -5,6 +5,7 @@ Nota de KR (padrão Google/Doerr, escala 0–1):
 A mesma fórmula serve para KRs "menor é melhor", porque numerador e denominador trocam de sinal juntos.
 Leitura: committed espera 1,0; aspirational com 0,6–0,7 já é sucesso.
 """
+
 from __future__ import annotations
 
 import json
@@ -35,7 +36,7 @@ def status(nota: float, tipo: str) -> str:
 def _valor(dados, kpi_id: str, periodo, filtro: dict | None) -> float:
     if not filtro:
         return float(kpis.calcular(dados, kpi_id, inicio=periodo[0], fim=periodo[1]))
-    (dim, valor), = filtro.items()
+    ((dim, valor),) = filtro.items()
     serie = kpis.calcular(dados, kpi_id, por=dim, inicio=periodo[0], fim=periodo[1])
     return float(serie.loc[valor])
 
@@ -57,15 +58,34 @@ def pontuar(dados: dict[str, pd.DataFrame], okrs: dict | None = None) -> tuple[p
             atual = _valor(dados, kr["kpi_id"], kr.get("periodo_atual", pa), kr.get("filtro"))
             n = nota_kr(base, kr["meta"], atual)
             notas.append(n)
-            krs.append({"objetivo": o["id"], "kr": kr["id"], "descricao": kr["descricao"],
-                        "kpi_id": kr["kpi_id"], "tipo": kr["tipo"], "linha_base": base, "meta": kr["meta"],
-                        "atual": atual, "nota": n, "status": status(n, kr["tipo"])})
+            krs.append(
+                {
+                    "objetivo": o["id"],
+                    "kr": kr["id"],
+                    "descricao": kr["descricao"],
+                    "kpi_id": kr["kpi_id"],
+                    "tipo": kr["tipo"],
+                    "linha_base": base,
+                    "meta": kr["meta"],
+                    "atual": atual,
+                    "nota": n,
+                    "status": status(n, kr["tipo"]),
+                }
+            )
         cp = o.get("contrapeso")
         cp_ok = None
         if cp:
             v = _valor(dados, cp["kpi_id"], pa, None)
             cp_ok = v <= cp["limite"] if cp["polaridade"] == "menor" else v >= cp["limite"]
-        objs.append({"objetivo": o["id"], "pilar": o["pilar"], "descricao": o["objetivo"], "dono": o["dono"],
-                     "nota_media": sum(notas) / len(notas),
-                     "contrapeso": cp["descricao"] if cp else "", "contrapeso_ok": cp_ok})
+        objs.append(
+            {
+                "objetivo": o["id"],
+                "pilar": o["pilar"],
+                "descricao": o["objetivo"],
+                "dono": o["dono"],
+                "nota_media": sum(notas) / len(notas),
+                "contrapeso": cp["descricao"] if cp else "",
+                "contrapeso_ok": cp_ok,
+            }
+        )
     return pd.DataFrame(krs), pd.DataFrame(objs)

@@ -27,11 +27,17 @@ def test_registro_existe_no_catalogo():
 
 
 def test_razao_agregada_por_soma_nao_por_media():
-    d = {"fato_cd": pd.DataFrame({
-            "data": pd.to_datetime(["2025-01-01", "2025-01-02"]), "unidade_id": ["X", "X"],
-            "pedidos": [100, 10_000], "pedidos_expedidos_cutoff": [50, 9_900]}),
-         "dim_unidade": pd.DataFrame({"unidade_id": ["X"], "regiao_id": ["SE"], "modelo": ["proprio"],
-                                      "tipo": ["CD"]})}
+    d = {
+        "fato_cd": pd.DataFrame(
+            {
+                "data": pd.to_datetime(["2025-01-01", "2025-01-02"]),
+                "unidade_id": ["X", "X"],
+                "pedidos": [100, 10_000],
+                "pedidos_expedidos_cutoff": [50, 9_900],
+            }
+        ),
+        "dim_unidade": pd.DataFrame({"unidade_id": ["X"], "regiao_id": ["SE"], "modelo": ["proprio"], "tipo": ["CD"]}),
+    }
     assert kpis.calcular(d, "SC-009") == pytest.approx(9_950 / 10_100)
 
 
@@ -67,7 +73,7 @@ def test_nivel_sigma_convencao():
 
 def test_nota_kr_polaridades():
     assert okr.nota_kr(0.90, 0.96, 0.93) == pytest.approx(0.5)
-    assert okr.nota_kr(14.0, 12.0, 13.0) == pytest.approx(0.5)   # menor é melhor
+    assert okr.nota_kr(14.0, 12.0, 13.0) == pytest.approx(0.5)  # menor é melhor
     assert okr.nota_kr(0.90, 0.96, 0.85) == 0.0
     assert okr.nota_kr(0.90, 0.96, 0.99) == 1.0
 
@@ -97,7 +103,8 @@ def test_meta_de_acuracia_mais_alta_nunca_custa_menos(dados):
 
 
 # ---------------------------------------------------------------- pessoas
-from kpikit import config as cfg, dmaic, pessoas  # noqa: E402
+from kpikit import config as cfg
+from kpikit import dmaic, pessoas
 
 
 def test_kaplan_meier_sem_censura_e_proporcao_simples():
@@ -120,6 +127,7 @@ def test_logistica_recupera_efeito_do_buddy(dados):
 
 def test_pe003_usa_apenas_coortes_maduras(dados):
     import math
+
     assert math.isnan(kpis.calcular(dados, "PE-003", inicio="2026-08-01", fim="2026-09-30"))
 
 
@@ -159,11 +167,11 @@ def test_dmaic_piloto_melhora_capability(recebimentos):
     antes = dmaic.capabilidade_nao_normal(recebimentos.query("fase == 'medir'").dock_to_stock_h)
     depois = dmaic.capabilidade_nao_normal(recebimentos.query("fase == 'piloto'").dock_to_stock_h)
     assert antes["ppk_percentil"] < 1.0 <= depois["ppk_percentil"]
-    assert antes["ppk_normal_enganoso"] > antes["ppk_percentil"]   # normal superestima em cauda longa
+    assert antes["ppk_normal_enganoso"] > antes["ppk_percentil"]  # normal superestima em cauda longa
 
 
 # ---------------------------------------------------------------- middle mile
-from kpikit import middle_mile as mm  # noqa: E402
+from kpikit import middle_mile as mm
 
 
 def test_consolidacao_respeita_capacidade_e_limite_inferior():
@@ -190,8 +198,8 @@ def test_otimo_nunca_pior_que_heuristica():
 def test_mix_frota_cobre_carga():
     mix = mm.mix_frota(30_000, 170, 240)
     frota = {v.nome: v for v in mm.FROTA.values()}
-    assert sum(frota[n].peso_kg * q for n, q in zip(mix.veiculo, mix.quantidade)) >= 30_000
-    assert sum(frota[n].volume_m3 * q for n, q in zip(mix.veiculo, mix.quantidade)) >= 170
+    assert sum(frota[n].peso_kg * q for n, q in zip(mix.veiculo, mix.quantidade, strict=True)) >= 30_000
+    assert sum(frota[n].volume_m3 * q for n, q in zip(mix.veiculo, mix.quantidade, strict=True)) >= 170
 
 
 def test_esperar_encher_sem_trava_perde_prazo():
@@ -216,7 +224,7 @@ def test_clarke_wright_viavel_e_melhor_que_direto():
 
 
 def test_dois_opt_desfaz_cruzamento():
-    pts = pd.DataFrame({"lat": [0, 0, 1, 1, 0], "lon": [0, 1, 1, 0, 2]})   # hub + 4 pontos
+    pts = pd.DataFrame({"lat": [0, 0, 1, 1, 0], "lon": [0, 1, 1, 0, 2]})  # hub + 4 pontos
     D = mm.matriz_distancias(pts)
     cruzada = [1, 3, 2, 4]
     assert mm.comprimento(mm.dois_opt(cruzada, D), D) < mm.comprimento(cruzada, D)
@@ -246,3 +254,55 @@ def test_orientar_nao_muda_km():
     kg = mm.CIDADES_NE.demanda_kg.to_numpy(float)
     rota = [1, 2, 13, 12]
     assert mm.comprimento(mm._orientar(rota, D, kg, mm.ParametrosRede()), D) == pytest.approx(mm.comprimento(rota, D))
+
+
+# ---------------------------------------------------------------- marketing
+from kpikit import marketing as mkt
+
+
+@pytest.fixture(scope="module")
+def serie_mmm():
+    return mkt.gerar_serie_mmm()
+
+
+def test_adstock_e_hill():
+    x = np.array([100.0, 0, 0])
+    assert mkt.adstock(x, 0.5).tolist() == [100.0, 50.0, 25.0]
+    assert mkt.hill(np.array([10.0]), 10.0)[0] == pytest.approx(0.5)
+
+
+def test_mmm_ajusta_bem_e_supera_plataforma(serie_mmm):
+    df, _ = serie_mmm
+    m = mkt.ajustar_mmm(df)
+    assert m.r2_treino > 0.95 and m.mape_teste < 0.03
+    t = mkt.comparar_roas(df, m)
+    erro_plat = ((t.roas_plataforma - t.roas_incremental_real).abs() / t.roas_incremental_real).mean()
+    erro_mmm = ((t.roas_incremental_mmm - t.roas_incremental_real).abs() / t.roas_incremental_real).mean()
+    assert erro_mmm < erro_plat
+
+
+def test_teste_geo_recupera_iroas():
+    r = mkt.teste_permutacao(mkt.gerar_teste_geo())
+    assert r["p_valor"] < 0.05
+    assert r["iroas_ic_inf"] <= mkt.VERDADE["Meta Ads"].roas_incremental <= r["iroas_ic_sup"]
+
+
+def test_calibracao_reduz_erro_e_melhora_receita_real(serie_mmm):
+    df, beta = serie_mmm
+    sem = mkt.ajustar_mmm(df)
+    iroas = mkt.teste_permutacao(mkt.gerar_teste_geo())["iroas"]
+    com = mkt.ajustar_mmm(df, calibracao={"Meta Ads": iroas})
+    assert mkt.erro_roas(mkt.comparar_roas(df, com)) < mkt.erro_roas(mkt.comparar_roas(df, sem))
+
+    def ganho_real(m):
+        o = mkt.otimizar_orcamento(df, m)
+        return mkt.receita_real_regime(o.gasto_otimo, beta) / mkt.receita_real_regime(o.gasto_atual, beta) - 1
+
+    assert ganho_real(com) > 0
+
+
+def test_otimizacao_respeita_orcamento_e_limites(serie_mmm):
+    df, _ = serie_mmm
+    o = mkt.otimizar_orcamento(df, mkt.ajustar_mmm(df))
+    assert o.gasto_otimo.sum() == pytest.approx(o.gasto_atual.sum(), rel=1e-4)
+    assert (o.gasto_otimo >= 0.5 * o.gasto_atual - 1).all() and (o.gasto_otimo <= 2 * o.gasto_atual + 1).all()

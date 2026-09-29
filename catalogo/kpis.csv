@@ -91,3 +91,6 @@ PE-013;pessoas;Retenção em 90 dias (Kaplan-Meier);S(90) da curva de sobrevivê
 MM-011;middle-mile;Paradas por rota (milk run);Paradas atendidas / rotas;paradas;maior;lagging;diário;TMS/roteirizador;MM-013
 MM-012;middle-mile;Volume despachado no prazo do hub;m³ que saem do hub em até o prazo interno / m³ recebidos;%;maior;leading;diário;WMS/sorter;MM-003
 MM-013;middle-mile;Rotas acima da jornada;Rotas com duração > jornada máxima (pernoite ou dupla) / rotas;%;menor;leading;semanal;TMS/telemetria;MM-011
+MK-011;marketing;ROAS incremental (experimento);Receita incremental medida em teste geo ou holdout / variação de investimento;x;maior;lagging;por teste;Teste geo/holdout;MK-001
+MK-012;marketing;ROAS marginal;Receita incremental do próximo real investido (derivada da curva de resposta do MMM);x;maior;leading;trimestral;MMM;MK-011
+MK-013;marketing;Erro do MMM vs. experimento;|ROAS MMM - ROAS experimento| / ROAS experimento;%;menor;leading;por teste;MMM + teste geo;MK-011

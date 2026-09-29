@@ -8,4 +8,4 @@
 - Números citados em textos (README, notebook, caso) devem ser conferidos contra a saída do código.
 - Ambiente: `python -m venv .venv && .venv/bin/pip install -r requirements-dev.txt`.
 - Notebooks são gerados por código: células em `notebooks/nb_*.py`, executados por `notebooks/gerar_notebook.py`. Edite o `.py`, nunca o `.ipynb`. Didática fica nos notebooks (caixas 🧠/🎯); o código de `kpikit/` fica limpo.
-- Após mudanças: `python catalogo/validar_catalogo.py`, `pytest -q`, `python -m kpikit.simulador` e, se o simulador mudar, `python notebooks/gerar_notebook.py`.
+- Após mudanças: `ruff check .`, `ruff format kpikit app tests catalogo`, `python catalogo/validar_catalogo.py`, `python catalogo/verificar_docs.py`, `pytest -q`, `python -m kpikit.simulador` e, se o simulador mudar, `python notebooks/gerar_notebook.py`.

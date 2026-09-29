@@ -2,14 +2,14 @@
 
 Uso: python catalogo/validar_catalogo.py
 """
+
 import csv
 import sys
 from collections import Counter
 from pathlib import Path
 
 CAMINHO = Path(__file__).with_name("kpis.csv")
-COLUNAS = ["id", "area", "kpi", "formula", "unidade", "polaridade",
-           "tipo", "frequencia", "fonte_tipica", "contrapeso"]
+COLUNAS = ["id", "area", "kpi", "formula", "unidade", "polaridade", "tipo", "frequencia", "fonte_tipica", "contrapeso"]
 POLARIDADES = {"maior", "menor", "faixa"}
 TIPOS = {"leading", "lagging"}
 

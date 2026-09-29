@@ -66,7 +66,7 @@ Definidos em [`okrs_2026.json`](okrs_2026.json) e **pontuados automaticamente** 
 | O3 | CDs com padrão de classe mundial | Acurácia 99,68% · Dock-to-stock 4 h · Cut-off 99% | Produtividade ≥ 12 linhas/HH |
 | O4 | Crescer com lucro e com gente que fica | POAS 1,8 · Custo/entrega R$ 12,50 · Turnover precoce 20% | Taxa de frequência ≤ 12 |
 
-**Resultado em 3T26** (ver notebook): O1 0,72 · O2 0,84 · O3 0,84 · O4 0,88. O O2 **viola o contrapeso** por efeito mix geográfico, uma lição de governança sobre contrapesos não estratificados.
+**Resultado em 3T26** (ver notebook): O1 0,72 · O2 0,84 · O3 0,84 · O4 0,73. O O2 **viola o contrapeso** por efeito mix geográfico, uma lição de governança sobre contrapesos não estratificados. No O4, o POAS subiu de 1,31 para 1,58, mas a meta de 1,80 segue **em risco**. E o POAS usa receita atribuída pela plataforma: o [notebook de marketing](../notebooks/marketing_mmm_incrementalidade.ipynb) mostra por que a alocação de verba precisa de ROAS **incremental**.
 
 ## 5. SLAs de interface (rede híbrida)
 
